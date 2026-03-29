@@ -2,14 +2,41 @@
  * Reference Page - BRE470 Design Tables and Guidance
  * Design: "Site Engineer's Companion" - quick-reference cards
  */
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { ArrowLeft, HardHat, BookOpen, Calculator } from "lucide-react";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { trpc } from "@/lib/trpc";
 
 const TRACKED_PLANT_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663349554749/hMJrHrZWZ2XC9JAvjXeKjs/tracked-plant-gPnkM3EukEYj6rsemarWLR.webp";
 
 export default function Reference() {
+  const { isAuthenticated } = useAuth({ redirectOnUnauthenticated: true });
+  const accessQuery = trpc.purchase.hasAccess.useQuery(undefined, { enabled: isAuthenticated });
+  const [, setLocation] = useLocation();
+
+  const hasAccess = accessQuery.data?.hasAccess;
+  const shouldRedirect = accessQuery.data !== undefined && !hasAccess;
+
+  useEffect(() => {
+    if (shouldRedirect) {
+      setLocation("/");
+    }
+  }, [shouldRedirect, setLocation]);
+
+  if (accessQuery.isLoading || shouldRedirect) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {/* Header */}

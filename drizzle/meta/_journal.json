@@ -1,0 +1,20 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1774824781360,
+      "tag": "0000_far_union_jack",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1774824929223,
+      "tag": "0001_numerous_jack_power",
+      "breakpoints": true
+    }
+  ]
+}

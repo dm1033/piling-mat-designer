@@ -7,6 +7,9 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import Calculator from "./pages/Calculator";
 import Reference from "./pages/Reference";
+import PaymentSuccess from "./pages/PaymentSuccess";
+import Account from "./pages/Account";
+import Redeem from "./pages/Redeem";
 
 function Router() {
   return (
@@ -14,6 +17,9 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/calculator" component={Calculator} />
       <Route path="/reference" component={Reference} />
+      <Route path="/payment-success" component={PaymentSuccess} />
+      <Route path="/account" component={Account} />
+      <Route path="/redeem" component={Redeem} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

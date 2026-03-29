@@ -3,7 +3,7 @@
  * Design: "Site Engineer's Companion" - step-by-step card flow
  * Large inputs, clear status indicators, mobile-optimized
  */
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -26,10 +26,41 @@ import {
   CU_QUALITATIVE,
 } from "@/lib/bre470-calc";
 import { exportReport } from "@/lib/export-report";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { trpc } from "@/lib/trpc";
+import { useLocation } from "wouter";
 
 type SubgradeType = "cohesive" | "granular";
 
 export default function Calculator() {
+  const { isAuthenticated } = useAuth({ redirectOnUnauthenticated: true });
+  const accessQuery = trpc.purchase.hasAccess.useQuery(undefined, { enabled: isAuthenticated });
+  const [, setLocation] = useLocation();
+
+  const hasAccess = accessQuery.data?.hasAccess;
+  const shouldRedirect = accessQuery.data !== undefined && !hasAccess;
+
+  useEffect(() => {
+    if (shouldRedirect) {
+      setLocation("/");
+    }
+  }, [shouldRedirect, setLocation]);
+
+  if (accessQuery.isLoading || shouldRedirect) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return <CalculatorInner />;
+}
+
+function CalculatorInner() {
   const [subgradeType, setSubgradeType] = useState<SubgradeType>("cohesive");
   const [useReinforcement, setUseReinforcement] = useState(false);
   const [waterTableNear, setWaterTableNear] = useState(false);
