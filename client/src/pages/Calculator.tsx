@@ -16,6 +16,7 @@ import {
   CheckCircle2, AlertTriangle, XCircle, Info, RotateCcw, Printer
 } from "lucide-react";
 import CrossSection from "@/components/CrossSection";
+import RigSelector from "@/components/RigSelector";
 import {
   calculateDesign,
   type DesignInputs,
@@ -25,6 +26,7 @@ import {
   type CalculationStep,
   CU_QUALITATIVE,
 } from "@/lib/bre470-calc";
+import { type PilingRig } from "@/lib/rig-database";
 import { exportReport } from "@/lib/export-report";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
@@ -81,7 +83,24 @@ function CalculatorInner() {
   const [phiSubgrade, setPhiSubgrade] = useState<string>("35");
   const [gammaSubgrade, setGammaSubgrade] = useState<string>("20");
 
+  // Rig selector state
+  const [selectedRigId, setSelectedRigId] = useState<string | undefined>(undefined);
+  const [inputMode, setInputMode] = useState<"rig" | "manual">("rig");
+
   const [result, setResult] = useState<DesignResult | null>(null);
+
+  const handleRigSelect = useCallback((rig: PilingRig) => {
+    setSelectedRigId(rig.id);
+    setW(String(rig.W));
+    setL1(String(rig.L1));
+    setL2(String(rig.L2));
+    setQ1k(String(rig.q1k));
+    setQ2k(String(rig.q2k));
+  }, []);
+
+  const handleRigClear = useCallback(() => {
+    setSelectedRigId(undefined);
+  }, []);
 
   const handleCalculate = useCallback(() => {
     let inputs: DesignInputs;
@@ -253,7 +272,7 @@ function CalculatorInner() {
                         >
                           <span className="font-medium capitalize">{key.replace('_', ' ')}</span>
                           <span className="text-muted-foreground ml-1">({val.range})</span>
-                          <div className="text-primary font-mono font-medium">{val.cuk} kPa</div>
+                          <div className="text-primary font-mono text-xs mt-0.5">cu = {val.cuk} kPa</div>
                         </button>
                       ))}
                     </div>
@@ -339,64 +358,109 @@ function CalculatorInner() {
             </CardContent>
           </Card>
 
-          {/* Step 4: Plant Loading */}
+          {/* Step 4: Plant Loading - WITH RIG SELECTOR */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="font-heading text-lg flex items-center gap-2">
                 <StepBadge n={4} />
-                Plant Loading (from EN 996)
+                Plant Loading
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <FieldGroup
-                label="Track Width (W)"
-                unit="m"
-                value={W}
-                onChange={setW}
-                type="number"
-                min={0.1}
-                max={3}
-              />
-              <div className="grid grid-cols-2 gap-4">
-                <FieldGroup
-                  label="Track Length L1 (Case 1)"
-                  unit="m"
-                  value={L1}
-                  onChange={setL1}
-                  type="number"
-                  min={0.5}
-                  max={10}
-                />
-                <FieldGroup
-                  label="Track Length L2 (Case 2)"
-                  unit="m"
-                  value={L2}
-                  onChange={setL2}
-                  type="number"
-                  min={0.5}
-                  max={10}
-                />
+              {/* Input mode toggle */}
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => setInputMode("rig")}
+                  className={`p-3 rounded-lg border-2 text-center transition-all ${
+                    inputMode === "rig"
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:border-muted-foreground/30"
+                  }`}
+                >
+                  <div className="font-heading font-semibold text-sm">Select Rig</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">From database</div>
+                </button>
+                <button
+                  onClick={() => setInputMode("manual")}
+                  className={`p-3 rounded-lg border-2 text-center transition-all ${
+                    inputMode === "manual"
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:border-muted-foreground/30"
+                  }`}
+                >
+                  <div className="font-heading font-semibold text-sm">Manual Entry</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">EN 996 values</div>
+                </button>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <FieldGroup
-                  label="Case 1 Loading (q1k)"
-                  unit="kPa"
-                  value={q1k}
-                  onChange={setQ1k}
-                  type="number"
-                  min={0}
-                  max={1000}
+
+              {/* Rig selector */}
+              {inputMode === "rig" && (
+                <RigSelector
+                  onSelect={handleRigSelect}
+                  selectedRigId={selectedRigId}
+                  onClear={handleRigClear}
                 />
+              )}
+
+              {/* Manual input fields (always shown but read-only when rig selected) */}
+              <div className={inputMode === "rig" && selectedRigId ? "opacity-70" : ""}>
+                {inputMode === "rig" && selectedRigId && (
+                  <p className="text-xs text-muted-foreground mb-3 flex items-center gap-1">
+                    <Info className="w-3 h-3" />
+                    Values auto-filled from selected rig. You can override below or switch to Manual Entry.
+                  </p>
+                )}
                 <FieldGroup
-                  label="Case 2 Loading (q2k)"
-                  unit="kPa"
-                  value={q2k}
-                  onChange={setQ2k}
+                  label="Track Width (W)"
+                  unit="m"
+                  value={W}
+                  onChange={setW}
                   type="number"
-                  min={0}
-                  max={1000}
+                  min={0.1}
+                  max={3}
                 />
+                <div className="grid grid-cols-2 gap-4 mt-4">
+                  <FieldGroup
+                    label="Track Length L1 (Case 1)"
+                    unit="m"
+                    value={L1}
+                    onChange={setL1}
+                    type="number"
+                    min={0.5}
+                    max={10}
+                  />
+                  <FieldGroup
+                    label="Track Length L2 (Case 2)"
+                    unit="m"
+                    value={L2}
+                    onChange={setL2}
+                    type="number"
+                    min={0.5}
+                    max={10}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4 mt-4">
+                  <FieldGroup
+                    label="Case 1 Loading (q1k)"
+                    unit="kPa"
+                    value={q1k}
+                    onChange={setQ1k}
+                    type="number"
+                    min={0}
+                    max={1000}
+                  />
+                  <FieldGroup
+                    label="Case 2 Loading (q2k)"
+                    unit="kPa"
+                    value={q2k}
+                    onChange={setQ2k}
+                    type="number"
+                    min={0}
+                    max={1000}
+                  />
+                </div>
               </div>
+
               <div className="bg-muted/50 rounded-lg p-3 text-sm text-muted-foreground">
                 <p><strong className="text-foreground">Case 1:</strong> Operator unlikely to aid recovery (travelling, crane mode, lifting)</p>
                 <p className="mt-1"><strong className="text-foreground">Case 2:</strong> Operator can control load (drilling, extracting, travelling with fixed mast)</p>
@@ -522,7 +586,7 @@ function CalculatorInner() {
                 {showSteps && (
                   <CardContent className="space-y-4">
                     {result.steps.map((step) => (
-                      <StepCard key={step.id} step={step} />
+                      <StepCard key={step.title} step={step} />
                     ))}
                   </CardContent>
                 )}

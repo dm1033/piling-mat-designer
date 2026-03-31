@@ -34,3 +34,15 @@
 - [x] Test full purchase flow end-to-end (12 unit tests passing)
 - [x] Fix render-phase navigation in Calculator/Reference to use useEffect
 - [x] Save checkpoint and deliver
+
+## Piling Rig Database Feature
+- [x] Research Liebherr piling rig specifications (LB 16-44, LRB 155/255)
+- [x] Research Bauer piling rig specifications (BG 15-46)
+- [x] Research Soilmec piling rig specifications (SR-30 to SR-100)
+- [x] Create rig database data file with 23 models and EN 996 parameters
+- [x] Build RigSelector UI component with search, manufacturer filter tabs
+- [x] Integrate rig selector into Calculator Step 4 with Select Rig / Manual Entry toggle
+- [x] Allow manual override of auto-filled values
+- [x] Write 25 unit tests for rig database (all passing)
+- [x] All 43 tests passing (25 rig + 18 existing)
+- [ ] Save checkpoint and deliver
