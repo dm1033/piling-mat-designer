@@ -132,18 +132,25 @@ export default function Home() {
                   Buy Now — £300
                 </Button>
               )}
+              {!hasAccess && (
+                <Link href="/calculator">
+                  <Button variant="outline" size="lg" className="w-full sm:w-auto text-base h-14 px-8 bg-white/10 border-white/30 text-white hover:bg-white/20">
+                    <Calculator className="w-5 h-5 mr-2" /> Try Free Demo
+                  </Button>
+                </Link>
+              )}
               {!hasAccess && isAuthenticated && (
                 <Link href="/redeem">
-                  <Button variant="outline" size="lg" className="w-full sm:w-auto text-base h-14 px-8 bg-white/10 border-white/30 text-white hover:bg-white/20">
-                    <Lock className="w-5 h-5 mr-2" /> Redeem Access Code
+                  <Button variant="ghost" size="sm" className="text-white/70 hover:text-white text-sm">
+                    <Lock className="w-4 h-4 mr-1" /> Redeem Access Code
                   </Button>
                 </Link>
               )}
               {!isAuthenticated && (
                 <Button
-                  variant="outline"
-                  size="lg"
-                  className="w-full sm:w-auto text-base h-14 px-8 bg-white/10 border-white/30 text-white hover:bg-white/20"
+                  variant="ghost"
+                  size="sm"
+                  className="text-white/70 hover:text-white text-sm"
                   onClick={() => window.location.href = getLoginUrl()}
                 >
                   Sign In
@@ -182,14 +189,21 @@ export default function Home() {
                     </Button>
                   </Link>
                 ) : (
-                  <Button
-                    size="lg"
-                    className="w-full h-14 text-base font-bold"
-                    onClick={handleBuyNow}
-                    disabled={createCheckout.isPending}
-                  >
-                    {createCheckout.isPending ? "Redirecting..." : "Buy Now — £300"}
-                  </Button>
+                  <div className="space-y-3">
+                    <Button
+                      size="lg"
+                      className="w-full h-14 text-base font-bold"
+                      onClick={handleBuyNow}
+                      disabled={createCheckout.isPending}
+                    >
+                      {createCheckout.isPending ? "Redirecting..." : "Buy Now — £300"}
+                    </Button>
+                    <Link href="/calculator">
+                      <Button variant="outline" size="lg" className="w-full h-12 text-sm">
+                        <Calculator className="w-4 h-4 mr-2" /> Try one free calculation first
+                      </Button>
+                    </Link>
+                  </div>
                 )}
               </CardContent>
             </Card>

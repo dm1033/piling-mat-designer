@@ -45,4 +45,20 @@
 - [x] Allow manual override of auto-filled values
 - [x] Write 25 unit tests for rig database (all passing)
 - [x] All 43 tests passing (25 rig + 18 existing)
-- [ ] Save checkpoint and deliver
+- [x] Save checkpoint and deliver
+
+## PWA Support & Free Demo Mode
+- [x] Create PWA manifest.json with app name, icons, theme colors
+- [x] Generate PWA icons (192x192, 512x512)
+- [x] Add service worker for offline caching
+- [x] Add install prompt banner for mobile users
+- [x] Register manifest and service worker in index.html
+- [x] Add free demo mode: one free calculation without purchase
+- [x] Show demo result with upsell prompt to purchase full access
+- [x] Track demo usage in localStorage to limit to one free calc
+- [x] Add "Try Free Demo" CTA on landing page hero and pricing card
+- [x] Restrict export/print and calculation steps for demo users
+- [x] Test PWA installation banner visible on calculator
+- [x] Test demo mode flow — 6 unit tests passing
+- [x] All 58 tests passing (15 demo + 25 rig + 18 existing)
+- [x] Save checkpoint and deliver

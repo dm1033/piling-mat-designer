@@ -2,6 +2,10 @@
  * Calculator Page - BRE470 Working Platform Design Tool
  * Design: "Site Engineer's Companion" - step-by-step card flow
  * Large inputs, clear status indicators, mobile-optimized
+ * 
+ * Access modes:
+ * 1. Paid user → full unlimited access
+ * 2. Guest/unpaid → one free demo calculation, then paywall
  */
 import { useState, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -13,10 +17,11 @@ import { Separator } from "@/components/ui/separator";
 import { Link } from "wouter";
 import {
   HardHat, ArrowLeft, ChevronDown, ChevronUp, Calculator as CalcIcon,
-  CheckCircle2, AlertTriangle, XCircle, Info, RotateCcw, Printer
+  CheckCircle2, AlertTriangle, XCircle, Info, RotateCcw, Printer, Sparkles
 } from "lucide-react";
 import CrossSection from "@/components/CrossSection";
 import RigSelector from "@/components/RigSelector";
+import DemoUpsell from "@/components/DemoUpsell";
 import {
   calculateDesign,
   type DesignInputs,
@@ -30,25 +35,21 @@ import { type PilingRig } from "@/lib/rig-database";
 import { exportReport } from "@/lib/export-report";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
-import { useLocation } from "wouter";
+import { useDemoMode } from "@/hooks/useDemoMode";
 
 type SubgradeType = "cohesive" | "granular";
 
 export default function Calculator() {
-  const { isAuthenticated } = useAuth({ redirectOnUnauthenticated: true });
-  const accessQuery = trpc.purchase.hasAccess.useQuery(undefined, { enabled: isAuthenticated });
-  const [, setLocation] = useLocation();
+  // Do NOT redirect unauthenticated users — allow guest demo access
+  const { isAuthenticated, loading: authLoading } = useAuth();
+  const accessQuery = trpc.purchase.hasAccess.useQuery(undefined, {
+    enabled: isAuthenticated,
+  });
 
-  const hasAccess = accessQuery.data?.hasAccess;
-  const shouldRedirect = accessQuery.data !== undefined && !hasAccess;
+  const hasPaidAccess = accessQuery.data?.hasAccess === true;
+  const isLoading = authLoading || (isAuthenticated && accessQuery.isLoading);
 
-  useEffect(() => {
-    if (shouldRedirect) {
-      setLocation("/");
-    }
-  }, [shouldRedirect, setLocation]);
-
-  if (accessQuery.isLoading || shouldRedirect) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -59,10 +60,11 @@ export default function Calculator() {
     );
   }
 
-  return <CalculatorInner />;
+  return <CalculatorInner hasPaidAccess={hasPaidAccess} />;
 }
 
-function CalculatorInner() {
+function CalculatorInner({ hasPaidAccess }: { hasPaidAccess: boolean }) {
+  const { hasUsedDemo, recordDemoUse } = useDemoMode();
   const [subgradeType, setSubgradeType] = useState<SubgradeType>("cohesive");
   const [useReinforcement, setUseReinforcement] = useState(false);
   const [waterTableNear, setWaterTableNear] = useState(false);
@@ -88,6 +90,7 @@ function CalculatorInner() {
   const [inputMode, setInputMode] = useState<"rig" | "manual">("rig");
 
   const [result, setResult] = useState<DesignResult | null>(null);
+  const [demoLocked, setDemoLocked] = useState(false);
 
   const handleRigSelect = useCallback((rig: PilingRig) => {
     setSelectedRigId(rig.id);
@@ -103,6 +106,15 @@ function CalculatorInner() {
   }, []);
 
   const handleCalculate = useCallback(() => {
+    // If not paid and already used demo, block
+    if (!hasPaidAccess && hasUsedDemo) {
+      setDemoLocked(true);
+      setTimeout(() => {
+        document.getElementById("demo-upsell")?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+      return;
+    }
+
     let inputs: DesignInputs;
 
     if (subgradeType === "cohesive") {
@@ -141,11 +153,17 @@ function CalculatorInner() {
     setResult(res);
     setShowSteps(false);
 
+    // Record demo use for non-paid users
+    if (!hasPaidAccess) {
+      const isNowLocked = recordDemoUse();
+      setDemoLocked(isNowLocked);
+    }
+
     // Scroll to results
     setTimeout(() => {
       document.getElementById("results-section")?.scrollIntoView({ behavior: "smooth" });
     }, 100);
-  }, [subgradeType, cu, phiPlatform, gammaPlatform, W, L1, L2, q1k, q2k, useReinforcement, Tult, phiSubgrade, gammaSubgrade, waterTableNear]);
+  }, [subgradeType, cu, phiPlatform, gammaPlatform, W, L1, L2, q1k, q2k, useReinforcement, Tult, phiSubgrade, gammaSubgrade, waterTableNear, hasPaidAccess, hasUsedDemo, recordDemoUse]);
 
   const handleExport = useCallback(() => {
     if (!result) return;
@@ -170,8 +188,12 @@ function CalculatorInner() {
   const handleReset = useCallback(() => {
     setResult(null);
     setShowSteps(false);
+    setDemoLocked(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
+
+  // Determine if the calculate button should be blocked
+  const isBlocked = !hasPaidAccess && hasUsedDemo && !result;
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -193,6 +215,18 @@ function CalculatorInner() {
           </div>
         </div>
       </header>
+
+      {/* Demo Banner for non-paid users */}
+      {!hasPaidAccess && !hasUsedDemo && (
+        <div className="bg-primary/10 border-b border-primary/20">
+          <div className="container py-2.5 flex items-center justify-center gap-2">
+            <Sparkles className="w-4 h-4 text-primary" />
+            <p className="text-sm font-medium text-primary">
+              Free demo — try one calculation before you buy
+            </p>
+          </div>
+        </div>
+      )}
 
       <main className="flex-1 pb-32">
         <div className="container py-6 space-y-6">
@@ -263,17 +297,14 @@ function CalculatorInner() {
                   />
                   <div className="bg-muted/50 rounded-lg p-3">
                     <p className="text-sm font-medium text-muted-foreground mb-2">Quick reference (Table B1):</p>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      {Object.entries(CU_QUALITATIVE).map(([key, val]) => (
-                        <button
+                    <div className="flex flex-wrap gap-2">
+                      {Object.entries(CU_QUALITATIVE).map(([key, { range, cuk }]) => (
+                        <QuickBtn
                           key={key}
-                          onClick={() => setCu(String(val.cuk))}
-                          className="text-left p-2 rounded border border-border bg-card hover:bg-accent transition-colors"
-                        >
-                          <span className="font-medium capitalize">{key.replace('_', ' ')}</span>
-                          <span className="text-muted-foreground ml-1">({val.range})</span>
-                          <div className="text-primary font-mono text-xs mt-0.5">cu = {val.cuk} kPa</div>
-                        </button>
+                          label={`${key.replace('_', ' ')} (${cuk} kPa)`}
+                          onClick={() => setCu(String(cuk))}
+                          active={cu === String(cuk)}
+                        />
                       ))}
                     </div>
                   </div>
@@ -281,38 +312,32 @@ function CalculatorInner() {
               ) : (
                 <>
                   <FieldGroup
-                    label="Subgrade φ' (angle of shearing resistance)"
+                    label="Angle of Shearing Resistance (φ')"
                     unit="°"
                     value={phiSubgrade}
                     onChange={setPhiSubgrade}
-                    hint="Typical: 25°-50°"
+                    hint="Typical: 25-45°"
                     type="number"
-                    min={20}
-                    max={55}
+                    min={0}
+                    max={60}
                   />
                   <FieldGroup
-                    label="Subgrade Effective Unit Weight (γ's)"
+                    label="Unit Weight of Subgrade (γ')"
                     unit="kN/m³"
                     value={gammaSubgrade}
                     onChange={setGammaSubgrade}
-                    hint="Bulk weight if water table > 2W deep"
+                    hint="Typical: 16-22 kN/m³"
                     type="number"
-                    min={5}
-                    max={25}
+                    min={0}
+                    max={30}
                   />
-                  <div className="flex items-center justify-between p-3 rounded-lg border border-border">
-                    <div>
-                      <Label className="text-base font-medium">Water table near surface?</Label>
-                      <p className="text-sm text-muted-foreground">Within 2W of ground surface</p>
-                    </div>
+                  <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
                     <Switch checked={waterTableNear} onCheckedChange={setWaterTableNear} />
-                  </div>
-                  {waterTableNear && (
-                    <div className="p-3 rounded-lg bg-warning/10 border border-warning/30 text-sm">
-                      <AlertTriangle className="w-4 h-4 inline text-warning mr-1" />
-                      Ensure γ's is the <strong>effective</strong> unit weight (γ - γw). γw = 9.81 kN/m³.
+                    <div>
+                      <Label className="text-sm font-medium">Water table within depth D</Label>
+                      <p className="text-xs text-muted-foreground">Reduces effective stress</p>
                     </div>
-                  )}
+                  </div>
                 </>
               )}
             </CardContent>
@@ -328,37 +353,52 @@ function CalculatorInner() {
             </CardHeader>
             <CardContent className="space-y-4">
               <FieldGroup
-                label="Platform φ' (angle of shearing resistance)"
+                label="Angle of Shearing Resistance (φ'p)"
                 unit="°"
                 value={phiPlatform}
                 onChange={setPhiPlatform}
-                hint="Typical: 35° (poor compaction) to 45° (heavy compaction, strong)"
+                hint="Well-graded crushed rock: 40-45°"
                 type="number"
-                min={30}
-                max={50}
+                min={0}
+                max={60}
               />
+              <div className="flex flex-wrap gap-2">
+                <QuickBtn label="Crushed Rock (40°)" onClick={() => setPhiPlatform("40")} active={phiPlatform === "40"} />
+                <QuickBtn label="Well-graded (45°)" onClick={() => setPhiPlatform("45")} active={phiPlatform === "45"} />
+                <QuickBtn label="Gravel (35°)" onClick={() => setPhiPlatform("35")} active={phiPlatform === "35"} />
+              </div>
               <FieldGroup
-                label="Platform Bulk Unit Weight (γp)"
+                label="Unit Weight of Platform (γp)"
                 unit="kN/m³"
                 value={gammaPlatform}
                 onChange={setGammaPlatform}
                 hint="Typical: 18-22 kN/m³"
                 type="number"
-                min={10}
+                min={0}
                 max={30}
               />
-              <div className="bg-muted/50 rounded-lg p-3">
-                <p className="text-sm font-medium text-muted-foreground mb-2">Quick set (Table B3):</p>
-                <div className="flex gap-2 flex-wrap">
-                  <QuickBtn label="Medium / Poor (35°)" onClick={() => setPhiPlatform("35")} active={phiPlatform === "35"} />
-                  <QuickBtn label="Medium / Heavy (40°)" onClick={() => setPhiPlatform("40")} active={phiPlatform === "40"} />
-                  <QuickBtn label="Strong / Heavy (45°)" onClick={() => setPhiPlatform("45")} active={phiPlatform === "45"} />
+              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                <Switch checked={useReinforcement} onCheckedChange={setUseReinforcement} />
+                <div>
+                  <Label className="text-sm font-medium">Geosynthetic Reinforcement</Label>
+                  <p className="text-xs text-muted-foreground">Reduces required thickness</p>
                 </div>
               </div>
+              {useReinforcement && (
+                <FieldGroup
+                  label="Ultimate Tensile Strength (Tult)"
+                  unit="kN/m"
+                  value={Tult}
+                  onChange={setTult}
+                  hint="From manufacturer data sheet"
+                  type="number"
+                  min={0}
+                />
+              )}
             </CardContent>
           </Card>
 
-          {/* Step 4: Plant Loading - WITH RIG SELECTOR */}
+          {/* Step 4: Plant Loading */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="font-heading text-lg flex items-center gap-2">
@@ -371,142 +411,63 @@ function CalculatorInner() {
               <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={() => setInputMode("rig")}
-                  className={`p-3 rounded-lg border-2 text-center transition-all ${
+                  className={`p-3 rounded-lg border-2 text-center transition-all text-sm font-medium ${
                     inputMode === "rig"
-                      ? "border-primary bg-primary/5"
+                      ? "border-primary bg-primary/5 text-primary"
                       : "border-border hover:border-muted-foreground/30"
                   }`}
                 >
-                  <div className="font-heading font-semibold text-sm">Select Rig</div>
-                  <div className="text-xs text-muted-foreground mt-0.5">From database</div>
+                  Select Rig
                 </button>
                 <button
                   onClick={() => setInputMode("manual")}
-                  className={`p-3 rounded-lg border-2 text-center transition-all ${
+                  className={`p-3 rounded-lg border-2 text-center transition-all text-sm font-medium ${
                     inputMode === "manual"
-                      ? "border-primary bg-primary/5"
+                      ? "border-primary bg-primary/5 text-primary"
                       : "border-border hover:border-muted-foreground/30"
                   }`}
                 >
-                  <div className="font-heading font-semibold text-sm">Manual Entry</div>
-                  <div className="text-xs text-muted-foreground mt-0.5">EN 996 values</div>
+                  Manual Entry
                 </button>
               </div>
 
-              {/* Rig selector */}
               {inputMode === "rig" && (
                 <RigSelector
-                  onSelect={handleRigSelect}
                   selectedRigId={selectedRigId}
+                  onSelect={handleRigSelect}
                   onClear={handleRigClear}
                 />
               )}
 
-              {/* Manual input fields (always shown but read-only when rig selected) */}
-              <div className={inputMode === "rig" && selectedRigId ? "opacity-70" : ""}>
-                {inputMode === "rig" && selectedRigId && (
-                  <p className="text-xs text-muted-foreground mb-3 flex items-center gap-1">
-                    <Info className="w-3 h-3" />
-                    Values auto-filled from selected rig. You can override below or switch to Manual Entry.
-                  </p>
-                )}
-                <FieldGroup
-                  label="Track Width (W)"
-                  unit="m"
-                  value={W}
-                  onChange={setW}
-                  type="number"
-                  min={0.1}
-                  max={3}
-                />
-                <div className="grid grid-cols-2 gap-4 mt-4">
-                  <FieldGroup
-                    label="Track Length L1 (Case 1)"
-                    unit="m"
-                    value={L1}
-                    onChange={setL1}
-                    type="number"
-                    min={0.5}
-                    max={10}
-                  />
-                  <FieldGroup
-                    label="Track Length L2 (Case 2)"
-                    unit="m"
-                    value={L2}
-                    onChange={setL2}
-                    type="number"
-                    min={0.5}
-                    max={10}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4 mt-4">
-                  <FieldGroup
-                    label="Case 1 Loading (q1k)"
-                    unit="kPa"
-                    value={q1k}
-                    onChange={setQ1k}
-                    type="number"
-                    min={0}
-                    max={1000}
-                  />
-                  <FieldGroup
-                    label="Case 2 Loading (q2k)"
-                    unit="kPa"
-                    value={q2k}
-                    onChange={setQ2k}
-                    type="number"
-                    min={0}
-                    max={1000}
-                  />
-                </div>
-              </div>
+              <Separator />
 
-              <div className="bg-muted/50 rounded-lg p-3 text-sm text-muted-foreground">
-                <p><strong className="text-foreground">Case 1:</strong> Operator unlikely to aid recovery (travelling, crane mode, lifting)</p>
-                <p className="mt-1"><strong className="text-foreground">Case 2:</strong> Operator can control load (drilling, extracting, travelling with fixed mast)</p>
+              <FieldGroup label="Track Width (W)" unit="m" value={W} onChange={setW} hint="Width of one track shoe" type="number" min={0} />
+              <div className="grid grid-cols-2 gap-3">
+                <FieldGroup label="Track Length L1" unit="m" value={L1} onChange={setL1} hint="Overall length" type="number" min={0} />
+                <FieldGroup label="Track Length L2" unit="m" value={L2} onChange={setL2} hint="Loaded length" type="number" min={0} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <FieldGroup label="Track Pressure q1k" unit="kPa" value={q1k} onChange={setQ1k} hint="Max (outrigger)" type="number" min={0} />
+                <FieldGroup label="Track Pressure q2k" unit="kPa" value={q2k} onChange={setQ2k} hint="Max (slewing)" type="number" min={0} />
               </div>
             </CardContent>
           </Card>
 
-          {/* Step 5: Reinforcement */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="font-heading text-lg flex items-center gap-2">
-                <StepBadge n={5} />
-                Geosynthetic Reinforcement
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between p-3 rounded-lg border border-border">
-                <div>
-                  <Label className="text-base font-medium">Use geosynthetic reinforcement?</Label>
-                  <p className="text-sm text-muted-foreground">Reduces required platform thickness</p>
-                </div>
-                <Switch checked={useReinforcement} onCheckedChange={setUseReinforcement} />
-              </div>
-              {useReinforcement && (
-                <FieldGroup
-                  label="Ultimate Tensile Strength (Tult)"
-                  unit="kN/m"
-                  value={Tult}
-                  onChange={setTult}
-                  hint="Design strength Td = Tult / 2. Min cover to reinforcement: 300mm."
-                  type="number"
-                  min={0}
-                  max={500}
-                />
-              )}
-            </CardContent>
-          </Card>
+          {/* Demo Upsell - shown when blocked */}
+          {isBlocked && (
+            <div id="demo-upsell">
+              <DemoUpsell hasUsedDemo={hasUsedDemo} />
+            </div>
+          )}
 
           {/* Calculate Button */}
           <Button
             size="lg"
             onClick={handleCalculate}
-            className="w-full h-16 text-lg font-heading font-bold"
+            className={`w-full h-16 text-lg font-heading font-bold ${isBlocked ? "opacity-50" : ""}`}
           >
             <CalcIcon className="w-6 h-6 mr-2" />
-            Calculate Platform Thickness
+            {isBlocked ? "Purchase to Calculate Again" : "Calculate Platform Thickness"}
           </Button>
 
           {/* Results */}
@@ -549,13 +510,15 @@ function CalculatorInner() {
                     </div>
                   )}
 
-                  {/* Export Button */}
-                  <div className="mt-4 flex justify-center">
-                    <Button variant="outline" size="lg" onClick={handleExport} className="gap-2">
-                      <Printer className="w-5 h-5" />
-                      Export / Print Report
-                    </Button>
-                  </div>
+                  {/* Export Button - only for paid users */}
+                  {hasPaidAccess && (
+                    <div className="mt-4 flex justify-center">
+                      <Button variant="outline" size="lg" onClick={handleExport} className="gap-2">
+                        <Printer className="w-5 h-5" />
+                        Export / Print Report
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -569,28 +532,46 @@ function CalculatorInner() {
                 />
               )}
 
-              {/* Calculation Steps */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <button
-                    onClick={() => setShowSteps(!showSteps)}
-                    className="flex items-center justify-between w-full"
-                  >
-                    <CardTitle className="font-heading text-lg flex items-center gap-2">
-                      <Info className="w-5 h-5" />
-                      Calculation Steps
-                    </CardTitle>
-                    {showSteps ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                  </button>
-                </CardHeader>
-                {showSteps && (
-                  <CardContent className="space-y-4">
-                    {result.steps.map((step) => (
-                      <StepCard key={step.title} step={step} />
-                    ))}
+              {/* Demo Upsell after results for non-paid users */}
+              {!hasPaidAccess && demoLocked && (
+                <div id="demo-upsell">
+                  <DemoUpsell hasUsedDemo={true} />
+                </div>
+              )}
+
+              {/* Calculation Steps - only for paid users */}
+              {hasPaidAccess ? (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <button
+                      onClick={() => setShowSteps(!showSteps)}
+                      className="flex items-center justify-between w-full"
+                    >
+                      <CardTitle className="font-heading text-lg flex items-center gap-2">
+                        <Info className="w-5 h-5" />
+                        Calculation Steps
+                      </CardTitle>
+                      {showSteps ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                    </button>
+                  </CardHeader>
+                  {showSteps && (
+                    <CardContent className="space-y-4">
+                      {result.steps.map((step) => (
+                        <StepCard key={step.title} step={step} />
+                      ))}
+                    </CardContent>
+                  )}
+                </Card>
+              ) : (
+                <Card className="border border-dashed border-muted-foreground/30">
+                  <CardContent className="pt-6 text-center">
+                    <Info className="w-6 h-6 text-muted-foreground mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">
+                      Full calculation steps and export available with purchase
+                    </p>
                   </CardContent>
-                )}
-              </Card>
+                </Card>
+              )}
 
               {/* Reset */}
               <Button variant="outline" size="lg" onClick={handleReset} className="w-full h-14">

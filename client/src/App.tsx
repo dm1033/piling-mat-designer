@@ -5,6 +5,7 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
+import PwaInstallPrompt from "./components/PwaInstallPrompt";
 import Calculator from "./pages/Calculator";
 import Reference from "./pages/Reference";
 import PaymentSuccess from "./pages/PaymentSuccess";
@@ -33,6 +34,7 @@ function App() {
         <TooltipProvider>
           <Toaster />
           <Router />
+          <PwaInstallPrompt />
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>

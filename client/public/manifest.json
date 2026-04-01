@@ -1,0 +1,25 @@
+{
+  "name": "BRE470 Piling Mat Designer",
+  "short_name": "BRE470",
+  "description": "Design & check your own piling mat bases in accordance with BR 470 (BRE 2004). One-off cost, share with all construction companies on your project.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1a1a",
+  "theme_color": "#e65100",
+  "orientation": "portrait-primary",
+  "categories": ["business", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310519663349554749/hMJrHrZWZ2XC9JAvjXeKjs/pwa-icon-192-D6A2AtvykU8AK2APVdQU9K.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310519663349554749/hMJrHrZWZ2XC9JAvjXeKjs/pwa-icon-512-REZNiZFCxEYKCDnJocTAYY.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
