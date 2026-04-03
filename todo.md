@@ -62,3 +62,18 @@
 - [x] Test demo mode flow — 6 unit tests passing
 - [x] All 58 tests passing (15 demo + 25 rig + 18 existing)
 - [x] Save checkpoint and deliver
+
+## Tiered Subscription Model & Marketing
+- [x] Convert products.ts from one-off to 3 tiered subscriptions (Individual/Team/Enterprise)
+- [x] Update Stripe checkout to create subscriptions instead of one-off payments
+- [x] Update webhook handler for subscription events (invoice.paid, customer.subscription.*)
+- [x] Update database schema for subscription tracking (tier, status, period)
+- [x] Update access control to check active subscription status
+- [x] Update landing page with 3-tier pricing cards (£9.99/£29.99/£49.99 per month)
+- [x] Add annual pricing with discount (£99/£299/£499 per year)
+- [x] Add David Miller consultation section (Temporary Works Designer, 1-to-1 coaching)
+- [x] Update marketing copy to emphasise cost savings for the industry
+- [x] Add Email David and Call to Book buttons for David Miller consultation
+- [x] Update Account page for subscription management with billing portal
+- [x] Write tests for subscription logic — 72 tests passing
+- [x] Save checkpoint and deliver

@@ -15,6 +15,13 @@
       "when": 1774824929223,
       "tag": "0001_numerous_jack_power",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1775222720175,
+      "tag": "0002_great_nick_fury",
+      "breakpoints": true
     }
   ]
 }

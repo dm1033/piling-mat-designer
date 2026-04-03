@@ -1,10 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Lock, ShoppingCart, CheckCircle2, Zap, Share2, BookOpen } from "lucide-react";
+import { Lock, ShoppingCart, Zap, Share2, BookOpen } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { getLoginUrl } from "@/const";
 import { toast } from "sonner";
+import { Link } from "wouter";
 
 interface DemoUpsellProps {
   /** Whether the user has already used their free calculation */
@@ -25,12 +26,12 @@ export default function DemoUpsell({ hasUsedDemo }: DemoUpsellProps) {
     },
   });
 
-  const handleBuyNow = () => {
+  const handleSubscribe = () => {
     if (!isAuthenticated) {
       window.location.href = getLoginUrl();
       return;
     }
-    createCheckout.mutate();
+    createCheckout.mutate({ planId: "individual", interval: "month" });
   };
 
   if (!hasUsedDemo) return null;
@@ -48,7 +49,7 @@ export default function DemoUpsell({ hasUsedDemo }: DemoUpsellProps) {
               You've used your free calculation
             </h3>
             <p className="text-muted-foreground mt-2 max-w-md mx-auto">
-              Unlock unlimited BRE470 calculations for your entire project team with a one-off purchase.
+              Subscribe to unlock unlimited BRE470 calculations, export reports, and share with your project team.
             </p>
           </div>
 
@@ -71,20 +72,27 @@ export default function DemoUpsell({ hasUsedDemo }: DemoUpsellProps) {
           {/* Price & CTA */}
           <div className="pt-2">
             <div className="mb-3">
-              <span className="font-heading text-4xl font-bold text-primary">£300</span>
-              <span className="text-muted-foreground ml-2">one-off payment</span>
+              <span className="font-heading text-4xl font-bold text-primary">£9.99</span>
+              <span className="text-muted-foreground ml-2">/month</span>
             </div>
-            <Button
-              size="lg"
-              onClick={handleBuyNow}
-              disabled={createCheckout.isPending}
-              className="h-14 px-10 text-lg font-heading font-bold gap-2"
-            >
-              <ShoppingCart className="w-5 h-5" />
-              {createCheckout.isPending ? "Processing..." : "Buy Now — £300"}
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Button
+                size="lg"
+                onClick={handleSubscribe}
+                disabled={createCheckout.isPending}
+                className="h-14 px-10 text-lg font-heading font-bold gap-2"
+              >
+                <ShoppingCart className="w-5 h-5" />
+                {createCheckout.isPending ? "Processing..." : "Subscribe Now"}
+              </Button>
+              <Link href="/#pricing">
+                <Button variant="outline" size="lg" className="h-14 px-8 text-sm">
+                  View All Plans
+                </Button>
+              </Link>
+            </div>
             <p className="text-xs text-muted-foreground mt-3">
-              No subscription. Share with all companies on your project.
+              Plans from £9.99/month. Team &amp; Enterprise plans available. Cancel anytime.
             </p>
           </div>
         </div>
