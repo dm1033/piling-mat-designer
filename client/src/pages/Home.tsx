@@ -403,12 +403,12 @@ export default function Home() {
                         Enterprise subscribers receive a complimentary 1-hour consultation. Additional sessions available for all subscribers.
                       </p>
                       <div className="flex flex-col sm:flex-row gap-3">
-                        <a href="mailto:david@pilingmatdesigner.co.uk" className="flex-1">
+                        <a href="mailto:temporaryworksconsultingltd@outlook.com" className="flex-1">
                           <Button className="w-full gap-2" size="lg">
                             <Mail className="w-4 h-4" /> Email David
                           </Button>
                         </a>
-                        <a href="tel:+447000000000" className="flex-1">
+                        <a href="tel:+4407900984900" className="flex-1">
                           <Button variant="outline" className="w-full gap-2" size="lg">
                             <Phone className="w-4 h-4" /> Call to Book
                           </Button>
@@ -486,9 +486,12 @@ export default function Home() {
             <div>
               <h4 className="font-semibold text-foreground mb-2">Contact</h4>
               <p>David Miller — Temporary Works Designer</p>
-              <a href="mailto:david@pilingmatdesigner.co.uk" className="hover:text-foreground transition-colors">
-                david@pilingmatdesigner.co.uk
+              <a href="mailto:temporaryworksconsultingltd@outlook.com" className="hover:text-foreground transition-colors">
+                temporaryworksconsultingltd@outlook.com
               </a>
+              <p className="mt-1">
+                <a href="tel:+4407900984900" className="hover:text-foreground transition-colors">07900 984900</a>
+              </p>
             </div>
           </div>
           <div className="border-t border-border mt-6 pt-6 text-center text-xs text-muted-foreground">

@@ -77,3 +77,12 @@
 - [x] Update Account page for subscription management with billing portal
 - [x] Write tests for subscription logic — 72 tests passing
 - [x] Save checkpoint and deliver
+
+## Contact Details Update
+- [x] Update Home.tsx with real email (temporaryworksconsultingltd@outlook.com)
+- [x] Update Home.tsx with real phone (07900 984900)
+- [x] Update footer email to temporaryworksconsultingltd@outlook.com
+- [x] Verified no other pages have placeholder contact details
+- [x] Fixed service worker cache (bumped to v2) to serve fresh content
+- [x] All 72 tests passing
+- [x] Save checkpoint and deliver
