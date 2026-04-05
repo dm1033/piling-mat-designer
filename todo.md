@@ -86,3 +86,28 @@
 - [x] Fixed service worker cache (bumped to v2) to serve fresh content
 - [x] All 72 tests passing
 - [x] Save checkpoint and deliver
+
+## Per-Design Payment & Certificate (v3)
+- [x] Convert payment model from subscriptions to per-design £299.99
+- [x] Update products.ts with single per-design product
+- [x] Update Stripe checkout for one-off per-design payments
+- [x] Update webhook handler for per-design checkout.session.completed
+- [x] Update database schema to track individual design purchases (designs table)
+- [x] Create professional design certificate page with:
+  - [x] Full interpretive design and calculations (Section 4: Calculation Audit Trail)
+  - [x] Clear check certificate format (Section 5: Design Check Certificate)
+  - [x] Signed by David Miller, Temporary Works Designer
+  - [x] Project details, soil parameters, rig details, results
+  - [x] BRE470 compliance statement and disclaimer
+  - [x] Professional A4 print-ready formatting with company branding
+- [x] Update calculator flow: calculate → project details → pay £299.99 → certificate
+- [x] Update landing page pricing to show £299.99 per design
+- [x] Update marketing copy to emphasise per-design value vs consultant cost
+- [x] Remove subscription-related UI (monthly/annual toggle, tiers)
+- [x] Create My Designs page showing all purchased certificates
+- [x] Create PaymentSuccess page with certificate link
+- [x] Add Certificate route (/certificate/:id)
+- [x] Rewrite purchase.test.ts for per-design model (10 tests)
+- [x] Rewrite webhook-integration.test.ts for per-design model (14 tests)
+- [x] All 65 tests passing across 5 test files
+- [x] Save checkpoint and deliver

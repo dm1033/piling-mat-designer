@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, boolean } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, boolean, json } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -11,13 +11,6 @@ export const users = mysqlTable("users", {
   loginMethod: varchar("loginMethod", { length: 64 }),
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
   stripeCustomerId: varchar("stripeCustomerId", { length: 128 }),
-  // Subscription fields
-  subscriptionTier: varchar("subscriptionTier", { length: 32 }), // individual, team, enterprise
-  subscriptionStatus: varchar("subscriptionStatus", { length: 32 }), // active, cancelled, past_due, trialing
-  stripeSubscriptionId: varchar("stripeSubscriptionId", { length: 128 }),
-  subscriptionCurrentPeriodEnd: timestamp("subscriptionCurrentPeriodEnd"),
-  // Legacy one-off purchase flag (kept for backward compatibility)
-  hasPurchased: boolean("hasPurchased").default(false).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
@@ -27,41 +20,32 @@ export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
 /**
- * Purchases / subscription events table
- * Records each successful payment (initial and renewals)
+ * Design purchases — each row is a paid BRE470 design with certificate
+ * £299.99 per design, includes full calculation data and signed certificate
  */
-export const purchases = mysqlTable("purchases", {
+export const designs = mysqlTable("designs", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
-  stripePaymentIntentId: varchar("stripePaymentIntentId", { length: 128 }).notNull(),
+  /** Unique certificate reference number e.g. BRE470-2026-00001 */
+  certificateRef: varchar("certificateRef", { length: 64 }).notNull().unique(),
+  /** Stripe payment tracking */
+  stripePaymentIntentId: varchar("stripePaymentIntentId", { length: 128 }),
   stripeSessionId: varchar("stripeSessionId", { length: 128 }),
-  stripeSubscriptionId: varchar("stripeSubscriptionId", { length: 128 }),
-  planTier: varchar("planTier", { length: 32 }),
-  billingInterval: varchar("billingInterval", { length: 16 }), // month or year
   amountPence: int("amountPence").notNull(),
   currency: varchar("currency", { length: 8 }).default("gbp").notNull(),
-  status: varchar("status", { length: 32 }).default("completed").notNull(),
+  paymentStatus: varchar("paymentStatus", { length: 32 }).default("pending").notNull(),
+  /** Project / site details entered by the user */
+  projectName: varchar("projectName", { length: 256 }),
+  siteLocation: varchar("siteLocation", { length: 256 }),
+  clientName: varchar("clientName", { length: 256 }),
+  /** Full calculation inputs and results stored as JSON */
+  calculationInputs: json("calculationInputs"),
+  calculationResult: json("calculationResult"),
+  /** Certificate status */
+  certificateIssued: boolean("certificateIssued").default(false).notNull(),
+  certificateIssuedAt: timestamp("certificateIssuedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
-export type Purchase = typeof purchases.$inferSelect;
-export type InsertPurchase = typeof purchases.$inferInsert;
-
-/**
- * Access codes - shareable codes that grant access to the tool
- * Team and Enterprise subscribers can generate codes for their team members
- */
-export const accessCodes = mysqlTable("accessCodes", {
-  id: int("id").autoincrement().primaryKey(),
-  code: varchar("code", { length: 32 }).notNull().unique(),
-  createdByUserId: int("createdByUserId").notNull(),
-  usedByUserId: int("usedByUserId"),
-  isUsed: boolean("isUsed").default(false).notNull(),
-  companyName: varchar("companyName", { length: 256 }),
-  planTier: varchar("planTier", { length: 32 }), // tier inherited from creator
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  usedAt: timestamp("usedAt"),
-});
-
-export type AccessCode = typeof accessCodes.$inferSelect;
-export type InsertAccessCode = typeof accessCodes.$inferInsert;
+export type Design = typeof designs.$inferSelect;
+export type InsertDesign = typeof designs.$inferInsert;

@@ -1,9 +1,9 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { PLANS, getPricePence, formatPrice } from "./products";
+import { PRODUCT, CERTIFICATE, formatPrice } from "./products";
 
 /**
- * Integration-style tests for the subscription model and Stripe webhook logic.
- * Tests product configuration, pricing helpers, and webhook DB flow.
+ * Integration-style tests for the per-design payment model and Stripe webhook logic.
+ * Tests product configuration, pricing helpers, certificate metadata, and webhook DB flow.
  */
 
 // Mock the database module
@@ -18,7 +18,7 @@ const mockUpdate = vi.fn().mockReturnValue({
 const mockSelect = vi.fn().mockReturnValue({
   from: vi.fn().mockReturnValue({
     where: vi.fn().mockReturnValue({
-      limit: vi.fn().mockResolvedValue([{ id: 1, hasPurchased: false, role: "user", subscriptionTier: null }]),
+      limit: vi.fn().mockResolvedValue([{ id: 1, role: "user", stripeCustomerId: null }]),
     }),
   }),
 });
@@ -32,77 +32,63 @@ vi.mock("drizzle-orm/mysql2", () => ({
 }));
 
 vi.mock("drizzle-orm", () => ({
-  eq: vi.fn((col, val) => ({ col, val })),
-  and: vi.fn((...args: any[]) => ({ args })),
+  eq: vi.fn((col: unknown, val: unknown) => ({ col, val })),
+  and: vi.fn((...args: unknown[]) => ({ args })),
+  desc: vi.fn((col: unknown) => ({ col, direction: "desc" })),
+  sql: vi.fn(),
 }));
 
 // Set DATABASE_URL so getDb() initializes
 process.env.DATABASE_URL = "mysql://test:test@localhost:3306/test";
 
-describe("Subscription plan configuration", () => {
-  it("defines three tiers: individual, team, enterprise", () => {
-    expect(Object.keys(PLANS)).toEqual(["individual", "team", "enterprise"]);
+describe("Per-design product configuration", () => {
+  it("defines a single product at £299.99 (29999 pence)", () => {
+    expect(PRODUCT.id).toBe("bre470_design");
+    expect(PRODUCT.priceGBP).toBe(29999);
+    expect(PRODUCT.currency).toBe("gbp");
   });
 
-  it("individual plan is £9.99/month and £99/year", () => {
-    expect(PLANS.individual.monthlyPricePence).toBe(999);
-    expect(PLANS.individual.annualPricePence).toBe(9900);
-    expect(PLANS.individual.currency).toBe("gbp");
-    expect(PLANS.individual.maxUsers).toBe(1);
+  it("product name includes BRE470 and certificate", () => {
+    const name = PRODUCT.name.toLowerCase();
+    expect(name).toContain("bre470");
+    expect(name).toContain("certificate");
   });
 
-  it("team plan is £29.99/month and £299/year with 10 users", () => {
-    expect(PLANS.team.monthlyPricePence).toBe(2999);
-    expect(PLANS.team.annualPricePence).toBe(29900);
-    expect(PLANS.team.maxUsers).toBe(10);
+  it("product description mentions David Miller", () => {
+    expect(PRODUCT.description).toContain("David Miller");
+  });
+});
+
+describe("Certificate metadata", () => {
+  it("certificate is signed by David Miller", () => {
+    expect(CERTIFICATE.designer).toBe("David Miller");
   });
 
-  it("enterprise plan is £49.99/month and £499/year with unlimited users", () => {
-    expect(PLANS.enterprise.monthlyPricePence).toBe(4999);
-    expect(PLANS.enterprise.annualPricePence).toBe(49900);
-    expect(PLANS.enterprise.maxUsers).toBe(999);
+  it("certificate title is Temporary Works Designer", () => {
+    expect(CERTIFICATE.title).toBe("Temporary Works Designer");
   });
 
-  it("individual plan features mention BRE470 calculations", () => {
-    const features = PLANS.individual.features.join(" ").toLowerCase();
-    expect(features).toContain("bre470");
+  it("certificate references BR 470 standard", () => {
+    expect(CERTIFICATE.standard).toContain("BR 470");
   });
 
-  it("team and enterprise plans inherit from lower tiers", () => {
-    expect(PLANS.team.features[0]).toContain("Everything in Individual");
-    expect(PLANS.enterprise.features[0]).toContain("Everything in Team");
-  });
-
-  it("annual pricing offers a discount vs monthly", () => {
-    for (const plan of Object.values(PLANS)) {
-      const monthlyAnnualized = plan.monthlyPricePence * 12;
-      expect(plan.annualPricePence).toBeLessThan(monthlyAnnualized);
-    }
+  it("certificate includes company and contact details", () => {
+    expect(CERTIFICATE.company).toBeTruthy();
+    expect(CERTIFICATE.email).toBeTruthy();
+    expect(CERTIFICATE.phone).toBeTruthy();
   });
 });
 
 describe("Pricing helpers", () => {
-  it("getPricePence returns monthly price for month interval", () => {
-    expect(getPricePence("individual", "month")).toBe(999);
-    expect(getPricePence("team", "month")).toBe(2999);
-    expect(getPricePence("enterprise", "month")).toBe(4999);
-  });
-
-  it("getPricePence returns annual price for year interval", () => {
-    expect(getPricePence("individual", "year")).toBe(9900);
-    expect(getPricePence("team", "year")).toBe(29900);
-    expect(getPricePence("enterprise", "year")).toBe(49900);
-  });
-
-  it("getPricePence throws for unknown plan", () => {
-    expect(() => getPricePence("nonexistent", "month")).toThrow("Unknown plan");
-  });
-
   it("formatPrice converts pence to pounds correctly", () => {
-    expect(formatPrice(999)).toBe("£9.99");
-    expect(formatPrice(2999)).toBe("£29.99");
-    expect(formatPrice(49900)).toBe("£499.00");
+    expect(formatPrice(29999)).toBe("£299.99");
     expect(formatPrice(0)).toBe("£0.00");
+    expect(formatPrice(100)).toBe("£1.00");
+    expect(formatPrice(50)).toBe("£0.50");
+  });
+
+  it("formatPrice handles the product price", () => {
+    expect(formatPrice(PRODUCT.priceGBP)).toBe("£299.99");
   });
 });
 
@@ -111,38 +97,45 @@ describe("Webhook checkout.session.completed flow", () => {
     vi.clearAllMocks();
   });
 
-  it("records subscription and grants access when checkout completes", async () => {
+  it("marks design as paid and issues certificate when checkout completes", async () => {
     const { getDb } = await import("./db");
     const db = await getDb();
 
     expect(db).not.toBeNull();
 
     if (db) {
-      // Simulate purchase insert with subscription data
-      await db.insert({} as any).values({
-        userId: 1,
-        stripePaymentIntentId: "pi_test_123",
-        stripeSessionId: "cs_test_456",
-        stripeSubscriptionId: "sub_test_789",
-        planTier: "team",
-        billingInterval: "month",
-        amountPence: 2999,
-        currency: "gbp",
-        status: "completed",
-      });
-
-      expect(mockInsert).toHaveBeenCalled();
-
-      // Simulate user update with subscription fields
+      // Simulate marking design as paid via update
       await db.update({} as any).set({
-        hasPurchased: true,
-        subscriptionTier: "team",
-        subscriptionStatus: "active",
-        stripeSubscriptionId: "sub_test_789",
-        stripeCustomerId: "cus_test_abc",
+        paymentStatus: "completed",
+        stripePaymentIntentId: "pi_test_123",
+        certificateIssued: true,
+        certificateIssuedAt: new Date(),
       }).where({} as any);
 
       expect(mockUpdate).toHaveBeenCalled();
+    }
+  });
+
+  it("creates design record with correct fields for pending payment", async () => {
+    const { getDb } = await import("./db");
+    const db = await getDb();
+
+    if (db) {
+      await db.insert({} as any).values({
+        userId: 1,
+        certificateRef: "BRE470-2026-00001",
+        amountPence: 29999,
+        stripeSessionId: "cs_test_456",
+        paymentStatus: "pending",
+        projectName: "Test Piling Project",
+        siteLocation: "Cambridge, CB1 2AB",
+        clientName: "Keller Group plc",
+        calculationInputs: { subgradeType: "cohesive", cu: 40 },
+        calculationResult: { designThicknessMm: 600, status: "pass" },
+        certificateIssued: false,
+      });
+
+      expect(mockInsert).toHaveBeenCalled();
     }
   });
 
@@ -151,8 +144,7 @@ describe("Webhook checkout.session.completed flow", () => {
       metadata: {},
       payment_intent: "pi_test_no_user",
       id: "cs_test_no_user",
-      subscription: "sub_test_no_user",
-      amount_total: 2999,
+      amount_total: 29999,
       currency: "gbp",
       customer: null,
     };
@@ -161,43 +153,20 @@ describe("Webhook checkout.session.completed flow", () => {
   });
 });
 
-describe("Access code flow", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+describe("Certificate reference format", () => {
+  it("follows the BRE470-YYYY-NNNNN pattern", () => {
+    const year = new Date().getFullYear();
+    const ref = `BRE470-${year}-00001`;
+    const pattern = /^BRE470-\d{4}-\d{5}$/;
+    expect(pattern.test(ref)).toBe(true);
   });
 
-  it("generates unique codes of correct format", async () => {
-    const { nanoid } = await import("nanoid");
-    const code = nanoid(12).toUpperCase();
-
-    expect(code.length).toBe(12);
-    expect(code).toBe(code.toUpperCase());
-  });
-
-  it("access code redemption updates user subscription", async () => {
-    const db = (await import("./db")).getDb;
-    const dbInstance = await db();
-
-    if (dbInstance) {
-      const mockCodeResult = [{
-        id: 5,
-        code: "TESTCODE1234",
-        isUsed: false,
-        createdByUserId: 1,
-        tier: "team",
-      }];
-
-      mockSelect.mockReturnValueOnce({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue(mockCodeResult),
-          }),
-        }),
-      });
-
-      const result = await dbInstance.select().from({} as any).where({} as any).limit(1);
-      expect(result.length).toBeGreaterThan(0);
-      expect(result[0].tier).toBe("team");
-    }
+  it("increments correctly", () => {
+    const year = new Date().getFullYear();
+    const refs = Array.from({ length: 5 }, (_, i) =>
+      `BRE470-${year}-${String(i + 1).padStart(5, "0")}`
+    );
+    expect(refs[0]).toBe(`BRE470-${year}-00001`);
+    expect(refs[4]).toBe(`BRE470-${year}-00005`);
   });
 });

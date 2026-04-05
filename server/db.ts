@@ -1,13 +1,10 @@
-import { eq, and } from "drizzle-orm";
+import { eq, desc, sql, and } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, purchases, accessCodes } from "../drizzle/schema";
+import { InsertUser, users, designs } from "../drizzle/schema";
 import { ENV } from './_core/env';
-import { nanoid } from "nanoid";
-import { PLANS } from "./products";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
-// Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
@@ -19,6 +16,8 @@ export async function getDb() {
   }
   return _db;
 }
+
+// ─── User helpers ──────────────────────────────────────────────────────
 
 export async function upsertUser(user: InsertUser): Promise<void> {
   if (!user.openId) {
@@ -32,9 +31,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
   }
 
   try {
-    const values: InsertUser = {
-      openId: user.openId,
-    };
+    const values: InsertUser = { openId: user.openId };
     const updateSet: Record<string, unknown> = {};
 
     const textFields = ["name", "email", "loginMethod"] as const;
@@ -81,163 +78,139 @@ export async function upsertUser(user: InsertUser): Promise<void> {
 
 export async function getUserByOpenId(openId: string) {
   const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot get user: database not available");
-    return undefined;
-  }
+  if (!db) return undefined;
 
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function updateUserStripeCustomerId(userId: number, stripeCustomerId: string) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(users).set({ stripeCustomerId }).where(eq(users.id, userId));
+}
+
+// ─── Design / Certificate helpers ──────────────────────────────────────
+
+/** Generate the next certificate reference number: BRE470-YYYY-NNNNN */
+export async function generateCertificateRef(): Promise<string> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const year = new Date().getFullYear();
+  const prefix = `BRE470-${year}-`;
+
+  const latest = await db
+    .select({ certificateRef: designs.certificateRef })
+    .from(designs)
+    .where(sql`${designs.certificateRef} LIKE ${prefix + '%'}`)
+    .orderBy(desc(designs.id))
+    .limit(1);
+
+  let nextNum = 1;
+  if (latest.length > 0) {
+    const lastRef = latest[0].certificateRef;
+    const lastNum = parseInt(lastRef.replace(prefix, ""), 10);
+    if (!isNaN(lastNum)) nextNum = lastNum + 1;
+  }
+
+  return `${prefix}${String(nextNum).padStart(5, "0")}`;
+}
+
+/** Create a new design record (pending payment) */
+export async function createDesign(data: {
+  userId: number;
+  certificateRef: string;
+  amountPence: number;
+  stripeSessionId?: string;
+  projectName?: string;
+  siteLocation?: string;
+  clientName?: string;
+  calculationInputs?: unknown;
+  calculationResult?: unknown;
+}): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const result = await db.insert(designs).values({
+    userId: data.userId,
+    certificateRef: data.certificateRef,
+    amountPence: data.amountPence,
+    stripeSessionId: data.stripeSessionId || null,
+    paymentStatus: "pending",
+    projectName: data.projectName || null,
+    siteLocation: data.siteLocation || null,
+    clientName: data.clientName || null,
+    calculationInputs: data.calculationInputs || null,
+    calculationResult: data.calculationResult || null,
+    certificateIssued: false,
+  });
+
+  return (result as any)[0].insertId;
+}
+
+/** Mark a design as paid and issue the certificate */
+export async function markDesignPaid(stripeSessionId: string, paymentIntentId: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+
+  await db.update(designs).set({
+    paymentStatus: "completed",
+    stripePaymentIntentId: paymentIntentId,
+    certificateIssued: true,
+    certificateIssuedAt: new Date(),
+  }).where(eq(designs.stripeSessionId, stripeSessionId));
+}
+
+/** Get all designs for a user */
+export async function getUserDesigns(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db
+    .select()
+    .from(designs)
+    .where(eq(designs.userId, userId))
+    .orderBy(desc(designs.createdAt));
+}
+
+/** Get a specific design by ID and user */
+export async function getDesignById(designId: number, userId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+
+  const result = await db
+    .select()
+    .from(designs)
+    .where(and(eq(designs.id, designId), eq(designs.userId, userId)))
+    .limit(1);
 
   return result.length > 0 ? result[0] : undefined;
 }
 
-// ─── Subscription & access helpers ──────────────────────────────────
-
-export interface AccessInfo {
-  hasAccess: boolean;
-  tier: string | null;
-  status: string | null;
-  periodEnd: Date | null;
-  maxUsers: number;
-}
-
-export async function checkUserHasAccess(userId: number): Promise<boolean> {
+/** Get a design by certificate reference */
+export async function getDesignByCertRef(certificateRef: string) {
   const db = await getDb();
-  if (!db) return false;
+  if (!db) return undefined;
 
-  const result = await db
-    .select({
-      hasPurchased: users.hasPurchased,
-      role: users.role,
-      subscriptionStatus: users.subscriptionStatus,
-    })
-    .from(users)
-    .where(eq(users.id, userId))
-    .limit(1);
-
-  if (result.length === 0) return false;
-  const u = result[0];
-  // Admin always has access
-  if (u.role === "admin") return true;
-  // Active subscription
-  if (u.subscriptionStatus === "active" || u.subscriptionStatus === "trialing") return true;
-  // Legacy one-off purchase or redeemed access code
-  if (u.hasPurchased) return true;
-  return false;
-}
-
-export async function getUserAccessInfo(userId: number): Promise<AccessInfo> {
-  const db = await getDb();
-  if (!db) return { hasAccess: false, tier: null, status: null, periodEnd: null, maxUsers: 0 };
-
-  const result = await db
-    .select({
-      hasPurchased: users.hasPurchased,
-      role: users.role,
-      subscriptionTier: users.subscriptionTier,
-      subscriptionStatus: users.subscriptionStatus,
-      subscriptionCurrentPeriodEnd: users.subscriptionCurrentPeriodEnd,
-    })
-    .from(users)
-    .where(eq(users.id, userId))
-    .limit(1);
-
-  if (result.length === 0) {
-    return { hasAccess: false, tier: null, status: null, periodEnd: null, maxUsers: 0 };
-  }
-
-  const u = result[0];
-  const hasAccess = u.role === "admin" ||
-    u.subscriptionStatus === "active" ||
-    u.subscriptionStatus === "trialing" ||
-    u.hasPurchased === true;
-
-  const tier = u.subscriptionTier || null;
-  const plan = tier ? PLANS[tier] : null;
-
-  return {
-    hasAccess,
-    tier,
-    status: u.subscriptionStatus || (u.hasPurchased ? "active" : null),
-    periodEnd: u.subscriptionCurrentPeriodEnd || null,
-    maxUsers: plan?.maxUsers || (u.role === "admin" ? 999 : 1),
-  };
-}
-
-export async function getUserPurchases(userId: number) {
-  const db = await getDb();
-  if (!db) return [];
-
-  return db.select().from(purchases).where(eq(purchases.userId, userId));
-}
-
-// ─── Access code helpers ─────────────────────────────────────────────
-
-export async function createAccessCode(createdByUserId: number, companyName?: string, planTier?: string) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  const code = nanoid(12).toUpperCase();
-
-  await db.insert(accessCodes).values({
-    code,
-    createdByUserId,
-    companyName: companyName || null,
-    planTier: planTier || null,
-  });
-
-  return code;
-}
-
-export async function redeemAccessCode(code: string, userId: number): Promise<boolean> {
-  const db = await getDb();
-  if (!db) return false;
-
-  // Find the code
   const result = await db
     .select()
-    .from(accessCodes)
-    .where(and(eq(accessCodes.code, code), eq(accessCodes.isUsed, false)))
+    .from(designs)
+    .where(eq(designs.certificateRef, certificateRef))
     .limit(1);
 
-  if (result.length === 0) return false;
-
-  const codeRecord = result[0];
-
-  // Mark code as used
-  await db
-    .update(accessCodes)
-    .set({ isUsed: true, usedByUserId: userId, usedAt: new Date() })
-    .where(eq(accessCodes.id, codeRecord.id));
-
-  // Grant access to the user — inherit the tier from the code creator
-  await db
-    .update(users)
-    .set({
-      hasPurchased: true,
-      subscriptionTier: codeRecord.planTier || undefined,
-      subscriptionStatus: "active",
-    })
-    .where(eq(users.id, userId));
-
-  return true;
+  return result.length > 0 ? result[0] : undefined;
 }
 
-export async function getAccessCodesByUser(userId: number) {
-  const db = await getDb();
-  if (!db) return [];
-
-  return db.select().from(accessCodes).where(eq(accessCodes.createdByUserId, userId));
-}
-
-export async function countAccessCodesUsedByUser(userId: number): Promise<number> {
+/** Count paid designs for a user */
+export async function countUserDesigns(userId: number): Promise<number> {
   const db = await getDb();
   if (!db) return 0;
 
   const result = await db
-    .select()
-    .from(accessCodes)
-    .where(and(eq(accessCodes.createdByUserId, userId), eq(accessCodes.isUsed, true)));
+    .select({ count: sql<number>`count(*)` })
+    .from(designs)
+    .where(and(eq(designs.userId, userId), eq(designs.paymentStatus, "completed")));
 
-  return result.length;
+  return result[0]?.count ?? 0;
 }

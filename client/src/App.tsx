@@ -11,6 +11,7 @@ import Reference from "./pages/Reference";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import Account from "./pages/Account";
 import Redeem from "./pages/Redeem";
+import Certificate from "./pages/Certificate";
 
 function Router() {
   return (
@@ -20,6 +21,8 @@ function Router() {
       <Route path="/reference" component={Reference} />
       <Route path="/payment-success" component={PaymentSuccess} />
       <Route path="/account" component={Account} />
+      <Route path="/my-designs" component={Account} />
+      <Route path="/certificate/:id" component={Certificate} />
       <Route path="/redeem" component={Redeem} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />

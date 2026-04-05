@@ -1,13 +1,13 @@
 /**
  * Calculator Page - BRE470 Working Platform Design Tool
- * Design: "Site Engineer's Companion" - step-by-step card flow
- * Large inputs, clear status indicators, mobile-optimized
+ * Per-design payment model: calculate → pay £299.99 → receive certificate
  * 
- * Access modes:
- * 1. Paid user → full unlimited access
- * 2. Guest/unpaid → one free demo calculation, then paywall
+ * Flow:
+ * 1. Guest/logged-in user enters parameters and runs calculation (one free demo)
+ * 2. After calculation, user enters project details and pays £299.99
+ * 3. After payment, user receives professional design certificate
  */
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -17,7 +17,8 @@ import { Separator } from "@/components/ui/separator";
 import { Link } from "wouter";
 import {
   HardHat, ArrowLeft, ChevronDown, ChevronUp, Calculator as CalcIcon,
-  CheckCircle2, AlertTriangle, XCircle, Info, RotateCcw, Printer, Sparkles
+  CheckCircle2, AlertTriangle, XCircle, Info, RotateCcw, Sparkles,
+  FileCheck, PoundSterling, ShoppingCart
 } from "lucide-react";
 import CrossSection from "@/components/CrossSection";
 import RigSelector from "@/components/RigSelector";
@@ -32,38 +33,16 @@ import {
   CU_QUALITATIVE,
 } from "@/lib/bre470-calc";
 import { type PilingRig } from "@/lib/rig-database";
-import { exportReport } from "@/lib/export-report";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { useDemoMode } from "@/hooks/useDemoMode";
+import { getLoginUrl } from "@/const";
+import { toast } from "sonner";
 
 type SubgradeType = "cohesive" | "granular";
 
 export default function Calculator() {
-  // Do NOT redirect unauthenticated users — allow guest demo access
   const { isAuthenticated, loading: authLoading } = useAuth();
-  const accessQuery = trpc.purchase.hasAccess.useQuery(undefined, {
-    enabled: isAuthenticated,
-  });
-
-  const hasPaidAccess = accessQuery.data?.hasAccess === true;
-  const isLoading = authLoading || (isAuthenticated && accessQuery.isLoading);
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  return <CalculatorInner hasPaidAccess={hasPaidAccess} />;
-}
-
-function CalculatorInner({ hasPaidAccess }: { hasPaidAccess: boolean }) {
   const { hasUsedDemo, recordDemoUse } = useDemoMode();
   const [subgradeType, setSubgradeType] = useState<SubgradeType>("cohesive");
   const [useReinforcement, setUseReinforcement] = useState(false);
@@ -89,8 +68,27 @@ function CalculatorInner({ hasPaidAccess }: { hasPaidAccess: boolean }) {
   const [selectedRigId, setSelectedRigId] = useState<string | undefined>(undefined);
   const [inputMode, setInputMode] = useState<"rig" | "manual">("rig");
 
+  // Result state
   const [result, setResult] = useState<DesignResult | null>(null);
   const [demoLocked, setDemoLocked] = useState(false);
+
+  // Project details for certificate (shown after calculation)
+  const [projectName, setProjectName] = useState("");
+  const [siteLocation, setSiteLocation] = useState("");
+  const [clientName, setClientName] = useState("");
+
+  // Stripe checkout mutation
+  const createCheckout = trpc.design.createCheckout.useMutation({
+    onSuccess: (data) => {
+      if (data.checkoutUrl) {
+        toast.info("Redirecting to Stripe checkout...");
+        window.location.href = data.checkoutUrl;
+      }
+    },
+    onError: (err) => {
+      toast.error(err.message || "Failed to start checkout. Please try again.");
+    },
+  });
 
   const handleRigSelect = useCallback((rig: PilingRig) => {
     setSelectedRigId(rig.id);
@@ -105,21 +103,11 @@ function CalculatorInner({ hasPaidAccess }: { hasPaidAccess: boolean }) {
     setSelectedRigId(undefined);
   }, []);
 
-  const handleCalculate = useCallback(() => {
-    // If not paid and already used demo, block
-    if (!hasPaidAccess && hasUsedDemo) {
-      setDemoLocked(true);
-      setTimeout(() => {
-        document.getElementById("demo-upsell")?.scrollIntoView({ behavior: "smooth" });
-      }, 100);
-      return;
-    }
-
-    let inputs: DesignInputs;
-
+  // Build current calculation inputs object
+  const currentInputs = useMemo(() => {
     if (subgradeType === "cohesive") {
-      inputs = {
-        subgradeType: "cohesive",
+      return {
+        subgradeType: "cohesive" as const,
         cu: parseFloat(cu) || 0,
         phiPlatform: parseFloat(phiPlatform) || 0,
         gammaPlatform: parseFloat(gammaPlatform) || 0,
@@ -130,10 +118,10 @@ function CalculatorInner({ hasPaidAccess }: { hasPaidAccess: boolean }) {
         q2k: parseFloat(q2k) || 0,
         useReinforcement,
         Tult: useReinforcement ? parseFloat(Tult) || 0 : undefined,
-      } as CohesiveInputs;
+      };
     } else {
-      inputs = {
-        subgradeType: "granular",
+      return {
+        subgradeType: "granular" as const,
         phiSubgrade: parseFloat(phiSubgrade) || 0,
         gammaSubgrade: parseFloat(gammaSubgrade) || 0,
         phiPlatform: parseFloat(phiPlatform) || 0,
@@ -146,15 +134,26 @@ function CalculatorInner({ hasPaidAccess }: { hasPaidAccess: boolean }) {
         waterTableNear,
         useReinforcement,
         Tult: useReinforcement ? parseFloat(Tult) || 0 : undefined,
-      } as GranularInputs;
+      };
+    }
+  }, [subgradeType, cu, phiPlatform, gammaPlatform, W, L1, L2, q1k, q2k, useReinforcement, Tult, phiSubgrade, gammaSubgrade, waterTableNear]);
+
+  const handleCalculate = useCallback(() => {
+    // If already used demo and not buying, block
+    if (hasUsedDemo && !result) {
+      setDemoLocked(true);
+      setTimeout(() => {
+        document.getElementById("demo-upsell")?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+      return;
     }
 
-    const res = calculateDesign(inputs);
+    const res = calculateDesign(currentInputs as DesignInputs);
     setResult(res);
     setShowSteps(false);
 
-    // Record demo use for non-paid users
-    if (!hasPaidAccess) {
+    // Record demo use (only first time)
+    if (!hasUsedDemo) {
       const isNowLocked = recordDemoUse();
       setDemoLocked(isNowLocked);
     }
@@ -163,37 +162,40 @@ function CalculatorInner({ hasPaidAccess }: { hasPaidAccess: boolean }) {
     setTimeout(() => {
       document.getElementById("results-section")?.scrollIntoView({ behavior: "smooth" });
     }, 100);
-  }, [subgradeType, cu, phiPlatform, gammaPlatform, W, L1, L2, q1k, q2k, useReinforcement, Tult, phiSubgrade, gammaSubgrade, waterTableNear, hasPaidAccess, hasUsedDemo, recordDemoUse]);
+  }, [currentInputs, hasUsedDemo, result, recordDemoUse]);
 
-  const handleExport = useCallback(() => {
+  const handlePurchase = useCallback(() => {
+    if (!isAuthenticated) {
+      window.location.href = getLoginUrl();
+      return;
+    }
+    if (!projectName.trim()) {
+      toast.error("Please enter a project name for the certificate.");
+      return;
+    }
     if (!result) return;
-    exportReport({
-      subgradeType,
-      cu: subgradeType === 'cohesive' ? parseFloat(cu) || 0 : undefined,
-      phiSubgrade: subgradeType === 'granular' ? parseFloat(phiSubgrade) || 0 : undefined,
-      gammaSubgrade: subgradeType === 'granular' ? parseFloat(gammaSubgrade) || 0 : undefined,
-      phiPlatform: parseFloat(phiPlatform) || 0,
-      gammaPlatform: parseFloat(gammaPlatform) || 0,
-      W: parseFloat(W) || 0,
-      L1: parseFloat(L1) || 0,
-      L2: parseFloat(L2) || 0,
-      q1k: parseFloat(q1k) || 0,
-      q2k: parseFloat(q2k) || 0,
-      useReinforcement,
-      Tult: useReinforcement ? parseFloat(Tult) || 0 : undefined,
-      waterTableNear: subgradeType === 'granular' ? waterTableNear : undefined,
-    }, result);
-  }, [result, subgradeType, cu, phiSubgrade, gammaSubgrade, phiPlatform, gammaPlatform, W, L1, L2, q1k, q2k, useReinforcement, Tult, waterTableNear]);
+
+    createCheckout.mutate({
+      projectName: projectName.trim(),
+      siteLocation: siteLocation.trim() || undefined,
+      clientName: clientName.trim() || undefined,
+      calculationInputs: currentInputs,
+      calculationResult: result,
+    });
+  }, [isAuthenticated, projectName, siteLocation, clientName, result, currentInputs, createCheckout]);
 
   const handleReset = useCallback(() => {
     setResult(null);
     setShowSteps(false);
     setDemoLocked(false);
+    setProjectName("");
+    setSiteLocation("");
+    setClientName("");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
   // Determine if the calculate button should be blocked
-  const isBlocked = !hasPaidAccess && hasUsedDemo && !result;
+  const isBlocked = hasUsedDemo && !result;
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -216,8 +218,8 @@ function CalculatorInner({ hasPaidAccess }: { hasPaidAccess: boolean }) {
         </div>
       </header>
 
-      {/* Demo Banner for non-paid users */}
-      {!hasPaidAccess && !hasUsedDemo && (
+      {/* Demo Banner for users who haven't used demo yet */}
+      {!hasUsedDemo && (
         <div className="bg-primary/10 border-b border-primary/20">
           <div className="container py-2.5 flex items-center justify-center gap-2">
             <Sparkles className="w-4 h-4 text-primary" />
@@ -467,7 +469,7 @@ function CalculatorInner({ hasPaidAccess }: { hasPaidAccess: boolean }) {
             className={`w-full h-16 text-lg font-heading font-bold ${isBlocked ? "opacity-50" : ""}`}
           >
             <CalcIcon className="w-6 h-6 mr-2" />
-            {isBlocked ? "Purchase to Calculate Again" : "Calculate Platform Thickness"}
+            {isBlocked ? "Demo Used — Purchase a Design Below" : "Calculate Platform Thickness"}
           </Button>
 
           {/* Results */}
@@ -509,16 +511,6 @@ function CalculatorInner({ hasPaidAccess }: { hasPaidAccess: boolean }) {
                       </p>
                     </div>
                   )}
-
-                  {/* Export Button - only for paid users */}
-                  {hasPaidAccess && (
-                    <div className="mt-4 flex justify-center">
-                      <Button variant="outline" size="lg" onClick={handleExport} className="gap-2">
-                        <Printer className="w-5 h-5" />
-                        Export / Print Report
-                      </Button>
-                    </div>
-                  )}
                 </CardContent>
               </Card>
 
@@ -532,46 +524,110 @@ function CalculatorInner({ hasPaidAccess }: { hasPaidAccess: boolean }) {
                 />
               )}
 
-              {/* Demo Upsell after results for non-paid users */}
-              {!hasPaidAccess && demoLocked && (
-                <div id="demo-upsell">
-                  <DemoUpsell hasUsedDemo={true} />
-                </div>
-              )}
-
-              {/* Calculation Steps - only for paid users */}
-              {hasPaidAccess ? (
-                <Card>
-                  <CardHeader className="pb-3">
-                    <button
-                      onClick={() => setShowSteps(!showSteps)}
-                      className="flex items-center justify-between w-full"
-                    >
-                      <CardTitle className="font-heading text-lg flex items-center gap-2">
-                        <Info className="w-5 h-5" />
-                        Calculation Steps
-                      </CardTitle>
-                      {showSteps ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                    </button>
-                  </CardHeader>
-                  {showSteps && (
-                    <CardContent className="space-y-4">
-                      {result.steps.map((step) => (
-                        <StepCard key={step.title} step={step} />
-                      ))}
-                    </CardContent>
-                  )}
-                </Card>
-              ) : (
-                <Card className="border border-dashed border-muted-foreground/30">
-                  <CardContent className="pt-6 text-center">
-                    <Info className="w-6 h-6 text-muted-foreground mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">
-                      Full calculation steps and export available with purchase
-                    </p>
+              {/* Calculation Steps Preview (collapsed, limited for demo) */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <button
+                    onClick={() => setShowSteps(!showSteps)}
+                    className="flex items-center justify-between w-full"
+                  >
+                    <CardTitle className="font-heading text-lg flex items-center gap-2">
+                      <Info className="w-5 h-5" />
+                      Calculation Steps
+                    </CardTitle>
+                    {showSteps ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                  </button>
+                </CardHeader>
+                {showSteps && (
+                  <CardContent className="space-y-4">
+                    {result.steps.map((step) => (
+                      <StepCard key={step.title} step={step} />
+                    ))}
                   </CardContent>
-                </Card>
-              )}
+                )}
+              </Card>
+
+              {/* Purchase Section — Get Your Certificate */}
+              <Card className="border-2 border-primary bg-gradient-to-br from-primary/5 to-primary/10">
+                <CardContent className="pt-6">
+                  <div className="text-center mb-6">
+                    <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
+                      <FileCheck className="w-8 h-8 text-primary" />
+                    </div>
+                    <h3 className="font-heading text-xl font-bold">Get Your Design Certificate</h3>
+                    <p className="text-muted-foreground mt-1 max-w-md mx-auto">
+                      Professional BRE470 design certificate with full calculations, signed by David Miller — Temporary Works Designer.
+                    </p>
+                    <div className="mt-3">
+                      <span className="font-heading text-4xl font-bold text-primary">£299.99</span>
+                    </div>
+                  </div>
+
+                  {/* Project Details Form */}
+                  <div className="space-y-4 max-w-md mx-auto">
+                    <div>
+                      <Label className="text-sm font-medium mb-1.5 block">
+                        Project Name <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        value={projectName}
+                        onChange={(e) => setProjectName(e.target.value)}
+                        placeholder="e.g. A14 Piling Works — Plot 7"
+                        className="h-12"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium mb-1.5 block">Site Location</Label>
+                      <Input
+                        value={siteLocation}
+                        onChange={(e) => setSiteLocation(e.target.value)}
+                        placeholder="e.g. Cambridge, CB1 2AB"
+                        className="h-12"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium mb-1.5 block">Client Name</Label>
+                      <Input
+                        value={clientName}
+                        onChange={(e) => setClientName(e.target.value)}
+                        placeholder="e.g. Keller Group plc"
+                        className="h-12"
+                      />
+                    </div>
+
+                    <Button
+                      size="lg"
+                      onClick={handlePurchase}
+                      disabled={createCheckout.isPending}
+                      className="w-full h-14 text-lg font-heading font-bold gap-2"
+                    >
+                      {createCheckout.isPending ? (
+                        <>
+                          <div className="w-5 h-5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <ShoppingCart className="w-5 h-5" />
+                          Purchase Certificate — £299.99
+                        </>
+                      )}
+                    </Button>
+
+                    {!isAuthenticated && (
+                      <p className="text-xs text-muted-foreground text-center">
+                        You will be asked to sign in before checkout.
+                      </p>
+                    )}
+
+                    <div className="text-center">
+                      <p className="text-xs text-muted-foreground">
+                        Secure payment via Stripe. Certificate includes full calculation audit trail.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
               {/* Reset */}
               <Button variant="outline" size="lg" onClick={handleReset} className="w-full h-14">

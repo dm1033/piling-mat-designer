@@ -1,55 +1,23 @@
 /**
- * Home Page - Sales-focused landing page for BRE470 Piling Mat Designer
- * Three subscription tiers: Individual, Team, Enterprise
- * David Miller Temporary Works consultation section
+ * Home Page — BRE470 Piling Mat Designer
+ * Per-design payment model: £299.99 per certified design
+ * Signed by David Miller, Temporary Works Designer
  */
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
-import { trpc } from "@/lib/trpc";
-import { toast } from "sonner";
 import {
   Calculator, BookOpen, HardHat, ArrowRight, Shield, Zap, FileText,
-  CheckCircle2, PoundSterling, Share2, Lock, Users, Star, Phone,
-  Mail, Award, Building2, Clock, TrendingDown
+  CheckCircle2, Phone, Mail, Award, Clock, PoundSterling, FileCheck
 } from "lucide-react";
 
 const HERO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663349554749/hMJrHrZWZ2XC9JAvjXeKjs/hero-construction-7yCmYE7gTL3hM6e2YBcmpd.webp";
 const CROSS_SECTION_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663349554749/hMJrHrZWZ2XC9JAvjXeKjs/platform-layers-PcjvRgwvXBiEZzaTKeBrTN.webp";
-const SITE_ENGINEER_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663349554749/hMJrHrZWZ2XC9JAvjXeKjs/site-engineer-D2Xx6DhbcjSeDAfkyHm7sU.webp";
-
-type BillingToggle = "month" | "year";
 
 export default function Home() {
-  const { user, isAuthenticated } = useAuth();
-  const [billing, setBilling] = useState<BillingToggle>("month");
-  const accessQuery = trpc.purchase.hasAccess.useQuery(undefined, {
-    enabled: isAuthenticated,
-  });
-  const hasAccess = accessQuery.data?.hasAccess === true;
-
-  const createCheckout = trpc.purchase.createCheckout.useMutation({
-    onSuccess: (data) => {
-      if (data.checkoutUrl) {
-        toast.info("Redirecting to secure checkout...");
-        window.open(data.checkoutUrl, "_blank");
-      }
-    },
-    onError: (err) => {
-      toast.error(err.message || "Failed to create checkout session");
-    },
-  });
-
-  const handleSubscribe = (planId: "individual" | "team" | "enterprise") => {
-    if (!isAuthenticated) {
-      window.location.href = getLoginUrl();
-      return;
-    }
-    createCheckout.mutate({ planId, interval: billing });
-  };
+  const { isAuthenticated } = useAuth();
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -63,32 +31,27 @@ export default function Home() {
             <span className="font-heading font-bold text-lg tracking-tight">BRE470</span>
           </div>
           <nav className="flex items-center gap-2">
-            {hasAccess ? (
+            {isAuthenticated && (
               <>
                 <Link href="/reference">
                   <Button variant="ghost" size="sm" className="text-sm">
                     <BookOpen className="w-4 h-4 mr-1" /> Reference
                   </Button>
                 </Link>
-                <Link href="/calculator">
-                  <Button size="sm" className="text-sm font-semibold">
-                    <Calculator className="w-4 h-4 mr-1" /> Design Tool
-                  </Button>
-                </Link>
-                <Link href="/account">
+                <Link href="/my-designs">
                   <Button variant="ghost" size="sm" className="text-sm">
-                    <Users className="w-4 h-4 mr-1" /> Account
+                    <FileCheck className="w-4 h-4 mr-1" /> My Designs
                   </Button>
                 </Link>
               </>
-            ) : isAuthenticated ? (
-              <Link href="/account">
-                <Button variant="ghost" size="sm" className="text-sm">
-                  <Users className="w-4 h-4 mr-1" /> Account
-                </Button>
-              </Link>
-            ) : (
-              <Button size="sm" className="text-sm font-semibold" onClick={() => window.location.href = getLoginUrl()}>
+            )}
+            <Link href="/calculator">
+              <Button size="sm" className="text-sm font-semibold">
+                <Calculator className="w-4 h-4 mr-1" /> Design Tool
+              </Button>
+            </Link>
+            {!isAuthenticated && (
+              <Button variant="ghost" size="sm" className="text-sm" onClick={() => window.location.href = getLoginUrl()}>
                 Sign In
               </Button>
             )}
@@ -98,328 +61,255 @@ export default function Home() {
 
       {/* Hero Section */}
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0">
-          <img
-            src={HERO_IMG}
-            alt="Construction site with tracked piling rig"
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/65 to-black/30" />
+        <div className="absolute inset-0 z-0">
+          <img src={HERO_IMG} alt="Construction site" className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-black/40" />
         </div>
-        <div className="relative container py-16 sm:py-24 lg:py-32">
-          <div className="max-w-xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur border border-white/20 text-white/90 text-sm mb-6">
-              <Shield className="w-4 h-4" />
-              <span>In accordance with BR 470 (BRE 2004)</span>
+        <div className="relative z-10 container py-16 sm:py-24">
+          <div className="max-w-2xl">
+            <div className="inline-flex items-center gap-2 bg-primary/20 border border-primary/30 rounded-full px-4 py-1.5 mb-6">
+              <Shield className="w-4 h-4 text-primary" />
+              <span className="text-sm font-medium text-primary">BR 470 Compliant</span>
             </div>
-            <h1 className="font-heading text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight mb-4">
-              Piling Mat<br />Designer
+            <h1 className="font-heading text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight">
+              Professional Piling Mat
+              <span className="text-primary block mt-1">Design Certificates</span>
             </h1>
-            <p className="text-xl sm:text-2xl text-white font-heading font-semibold mb-3">
-              Design &amp; check your own bases — save thousands
+            <p className="text-lg sm:text-xl text-gray-300 mt-4 max-w-xl leading-relaxed">
+              Get a fully certified BRE470 working platform design with interpretive calculations and check certificate — signed by David Miller, Temporary Works Designer.
             </p>
-            <p className="text-lg text-white/75 leading-relaxed mb-8 max-w-lg">
-              Full BRE470 compliant calculations for cohesive and granular subgrades. Subscribe from just £9.99/month and share with your entire project team.
+            <p className="text-3xl sm:text-4xl font-heading font-bold text-white mt-6">
+              £299.99 <span className="text-lg text-gray-400 font-normal">per design</span>
             </p>
-            <div className="flex flex-col sm:flex-row gap-3">
-              {hasAccess ? (
-                <Link href="/calculator">
-                  <Button size="lg" className="w-full sm:w-auto text-base font-semibold h-14 px-8">
-                    Open Design Tool <ArrowRight className="w-5 h-5 ml-2" />
-                  </Button>
-                </Link>
-              ) : (
-                <>
-                  <a href="#pricing">
-                    <Button size="lg" className="w-full sm:w-auto text-base font-semibold h-16 px-8">
-                      <PoundSterling className="w-5 h-5 mr-2" />
-                      View Plans — From £9.99/mo
-                    </Button>
-                  </a>
-                  <Link href="/calculator">
-                    <Button variant="outline" size="lg" className="w-full sm:w-auto text-base h-14 px-8 bg-white/10 border-white/30 text-white hover:bg-white/20">
-                      <Calculator className="w-5 h-5 mr-2" /> Try Free Demo
-                    </Button>
-                  </Link>
-                </>
-              )}
+            <div className="flex flex-col sm:flex-row gap-3 mt-8">
+              <Link href="/calculator">
+                <Button size="lg" className="h-14 px-8 text-lg font-heading font-bold gap-2 w-full sm:w-auto">
+                  <Calculator className="w-5 h-5" />
+                  Start Your Design
+                  <ArrowRight className="w-5 h-5" />
+                </Button>
+              </Link>
+              <Link href="/calculator?demo=true">
+                <Button variant="outline" size="lg" className="h-14 px-8 text-lg font-heading border-white/30 text-white hover:bg-white/10 w-full sm:w-auto">
+                  Try Free Demo
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
       </section>
 
       {/* Cost Savings Banner */}
-      <section className="py-8 bg-primary text-primary-foreground">
+      <section className="bg-primary text-primary-foreground py-4">
         <div className="container">
-          <div className="grid sm:grid-cols-3 gap-6 text-center">
-            <div>
-              <TrendingDown className="w-8 h-8 mx-auto mb-2" />
-              <div className="font-heading text-2xl font-bold">90% Cheaper</div>
-              <p className="text-sm opacity-80">Than hiring a consultant for each platform design</p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+            <div className="flex items-center justify-center gap-3">
+              <PoundSterling className="w-6 h-6" />
+              <div>
+                <div className="text-2xl font-heading font-bold">Save 50-70%</div>
+                <div className="text-sm opacity-90">vs traditional consultancy fees</div>
+              </div>
             </div>
-            <div>
-              <Clock className="w-8 h-8 mx-auto mb-2" />
-              <div className="font-heading text-2xl font-bold">2 Minutes</div>
-              <p className="text-sm opacity-80">Average time to complete a full BRE470 design</p>
+            <div className="flex items-center justify-center gap-3">
+              <Clock className="w-6 h-6" />
+              <div>
+                <div className="text-2xl font-heading font-bold">2 Minutes</div>
+                <div className="text-sm opacity-90">from input to certificate</div>
+              </div>
             </div>
-            <div>
-              <Building2 className="w-8 h-8 mx-auto mb-2" />
-              <div className="font-heading text-2xl font-bold">23 Rigs</div>
-              <p className="text-sm opacity-80">Pre-loaded Liebherr, Bauer &amp; Soilmec specifications</p>
+            <div className="flex items-center justify-center gap-3">
+              <Award className="w-6 h-6" />
+              <div>
+                <div className="text-2xl font-heading font-bold">Certified</div>
+                <div className="text-sm opacity-90">Signed by David Miller TWD</div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Features */}
-      <section className="py-12 sm:py-16 bg-muted/30">
+      {/* What You Get */}
+      <section className="py-16 bg-background">
         <div className="container">
-          <h2 className="font-heading text-2xl sm:text-3xl font-bold text-center mb-3">
-            Designed for Site Use
-          </h2>
-          <p className="text-center text-muted-foreground mb-10 max-w-lg mx-auto">
-            Built for site-based engineering staff who need quick, accurate platform designs without waiting for consultants
-          </p>
-          <div className="grid sm:grid-cols-3 gap-6">
+          <div className="text-center mb-12">
+            <h2 className="font-heading text-3xl sm:text-4xl font-bold">What You Get for £299.99</h2>
+            <p className="text-muted-foreground mt-3 max-w-2xl mx-auto text-lg">
+              A traditional consultancy design costs £500–£1,000. Our tool delivers the same professional output at a fraction of the cost.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <FeatureCard
-              icon={<Zap className="w-6 h-6" />}
-              title="Instant Calculations"
-              description="Get platform thickness results in seconds. Step-by-step BRE470 methodology with automatic safety factor application."
-              color="primary"
+              icon={<FileText className="w-7 h-7" />}
+              title="Full Interpretive Design"
+              description="Complete BRE470 Appendix A calculations with all parameters, partial factors, and bearing capacity checks clearly presented."
             />
             <FeatureCard
-              icon={<Shield className="w-6 h-6" />}
-              title="Code Compliant"
-              description="Full implementation of Appendix A design calculations for both cohesive (A2) and granular (A3) subgrades with geosynthetic reinforcement."
-              color="success"
+              icon={<CheckCircle2 className="w-7 h-7" />}
+              title="Check Certificate"
+              description="Professional design certificate with unique reference number, signed by David Miller — Temporary Works Designer."
             />
             <FeatureCard
-              icon={<FileText className="w-6 h-6" />}
-              title="Audit-Ready Reports"
-              description="Complete calculation audit trail showing every step, formula, and intermediate value. Export or print for site records."
-              color="warning"
+              icon={<Calculator className="w-7 h-7" />}
+              title="23 Pre-loaded Rigs"
+              description="Select from Liebherr, Bauer, and Soilmec piling rigs with EN 996 track dimensions auto-filled."
+            />
+            <FeatureCard
+              icon={<Shield className="w-7 h-7" />}
+              title="BR 470 Compliant"
+              description="Cohesive and granular subgrade calculations with optional geosynthetic reinforcement — fully aligned with BRE guidance."
+            />
+            <FeatureCard
+              icon={<Zap className="w-7 h-7" />}
+              title="Instant Results"
+              description="Get your design thickness, cross-section diagram, and full calculation breakdown in under 2 minutes."
+            />
+            <FeatureCard
+              icon={<Award className="w-7 h-7" />}
+              title="Professional Output"
+              description="Print-ready A4 certificate with project details, calculation audit trail, and designer's signature block."
             />
           </div>
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section id="pricing" className="py-12 sm:py-20">
+      {/* How It Works */}
+      <section className="py-16 bg-muted/30">
         <div className="container">
-          <h2 className="font-heading text-2xl sm:text-3xl font-bold text-center mb-3">
-            Choose Your Plan
-          </h2>
-          <p className="text-center text-muted-foreground mb-8 max-w-lg mx-auto">
-            All plans include full BRE470 calculations, 23-rig database, and ongoing updates. Cancel anytime.
-          </p>
-
-          {/* Billing toggle */}
-          <div className="flex items-center justify-center gap-3 mb-10">
-            <button
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${billing === "month" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
-              onClick={() => setBilling("month")}
-            >
-              Monthly
-            </button>
-            <button
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${billing === "year" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
-              onClick={() => setBilling("year")}
-            >
-              Annual <span className="text-xs ml-1 opacity-80">(Save ~17%)</span>
-            </button>
+          <div className="text-center mb-12">
+            <h2 className="font-heading text-3xl sm:text-4xl font-bold">How It Works</h2>
+            <p className="text-muted-foreground mt-3 text-lg">Three simple steps to your certified design</p>
           </div>
-
-          {/* Pricing Cards */}
-          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {/* Individual */}
-            <PricingCard
-              name="Individual"
-              description="For site engineers & small contractors"
-              monthlyPrice={999}
-              annualPrice={9900}
-              billing={billing}
-              features={[
-                "Full BRE470 calculations",
-                "Cohesive & granular subgrades",
-                "23-rig database with auto-fill",
-                "Export / print reports",
-                "Cross-section diagrams",
-                "PWA mobile access",
-                "All future updates",
-              ]}
-              onSubscribe={() => handleSubscribe("individual")}
-              isPending={createCheckout.isPending}
-              hasAccess={hasAccess}
-            />
-
-            {/* Team - Popular */}
-            <PricingCard
-              name="Team"
-              description="For piling subcontractors & project teams"
-              monthlyPrice={2999}
-              annualPrice={29900}
-              billing={billing}
-              popular
-              features={[
-                "Everything in Individual",
-                "Up to 10 users via access codes",
-                "Team sharing dashboard",
-                "Priority email support",
-                "Geosynthetic reinforcement design",
-              ]}
-              onSubscribe={() => handleSubscribe("team")}
-              isPending={createCheckout.isPending}
-              hasAccess={hasAccess}
-            />
-
-            {/* Enterprise */}
-            <PricingCard
-              name="Enterprise"
-              description="For principal contractors & large organisations"
-              monthlyPrice={4999}
-              annualPrice={49900}
-              billing={billing}
-              features={[
-                "Everything in Team",
-                "Unlimited users",
-                "Custom rig database entries",
-                "Priority support",
-                "1-hour consultation with David Miller",
-                "Dedicated account manager",
-              ]}
-              onSubscribe={() => handleSubscribe("enterprise")}
-              isPending={createCheckout.isPending}
-              hasAccess={hasAccess}
-            />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+            <StepCard number={1} title="Enter Your Parameters" description="Select your piling rig, enter ground conditions and platform material properties. The tool guides you step by step." />
+            <StepCard number={2} title="Review Your Design" description="See the calculated platform thickness, cross-section diagram, and full BRE470 calculation breakdown instantly." />
+            <StepCard number={3} title="Get Your Certificate" description="Pay £299.99 and receive your professional design certificate with unique reference number, signed by David Miller." />
           </div>
+        </div>
+      </section>
 
-          {/* Free demo CTA */}
-          {!hasAccess && (
-            <div className="text-center mt-8">
-              <Link href="/calculator">
-                <Button variant="outline" size="lg" className="h-12 px-8 text-sm">
-                  <Calculator className="w-4 h-4 mr-2" /> Try one free calculation before subscribing
-                </Button>
-              </Link>
-              {isAuthenticated && (
-                <div className="mt-3">
-                  <Link href="/redeem">
-                    <Button variant="ghost" size="sm" className="text-muted-foreground text-sm">
-                      <Lock className="w-4 h-4 mr-1" /> Have an access code? Redeem here
-                    </Button>
-                  </Link>
+      {/* Cross-Section Visual */}
+      <section className="py-16 bg-background">
+        <div className="container">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <h2 className="font-heading text-3xl font-bold mb-4">Professional Design Output</h2>
+              <p className="text-muted-foreground text-lg mb-6">
+                Each certificate includes a detailed cross-section diagram, full calculation audit trail, and clear pass/fail assessment — everything a Temporary Works Coordinator needs to approve the design.
+              </p>
+              <ul className="space-y-3">
+                {[
+                  "Unique certificate reference (BRE470-YYYY-NNNNN)",
+                  "Project name, site location, and client details",
+                  "Full BRE470 Appendix A calculation steps",
+                  "Design thickness with 25mm rounding",
+                  "Cross-section diagram with dimensions",
+                  "Signed by David Miller, Temporary Works Designer",
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-2">
+                    <CheckCircle2 className="w-5 h-5 text-primary mt-0.5 shrink-0" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="rounded-xl overflow-hidden border border-border shadow-lg">
+              <img src={CROSS_SECTION_IMG} alt="Platform cross-section" className="w-full" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing */}
+      <section id="pricing" className="py-16 bg-muted/30">
+        <div className="container">
+          <div className="max-w-lg mx-auto">
+            <Card className="border-2 border-primary shadow-xl">
+              <CardContent className="pt-8 pb-8 text-center">
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                  <FileCheck className="w-8 h-8 text-primary" />
                 </div>
-              )}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* How sharing works */}
-      <section className="py-12 sm:py-16 bg-muted/30">
-        <div className="container">
-          <div className="grid lg:grid-cols-2 gap-8 items-center">
-            <div>
-              <h2 className="font-heading text-2xl sm:text-3xl font-bold mb-4">
-                Share With Your Project Teams
-              </h2>
-              <p className="text-muted-foreground text-lg leading-relaxed mb-6">
-                Team and Enterprise subscribers can generate access codes to share the tool with all construction companies involved in their works. Each code grants full access to the design tool.
-              </p>
-              <div className="space-y-4">
-                <ShareStep n={1} title="Subscribe to Team or Enterprise" desc="Get access for yourself and your project teams" />
-                <ShareStep n={2} title="Generate access codes" desc="Create unique codes for each company on your project" />
-                <ShareStep n={3} title="Share with your teams" desc="Send codes to site engineers who need to design platforms" />
-              </div>
-            </div>
-            <div className="rounded-lg overflow-hidden border border-border shadow-sm">
-              <img
-                src={CROSS_SECTION_IMG}
-                alt="Working platform cross-section showing layers"
-                className="w-full h-auto"
-              />
-            </div>
+                <h3 className="font-heading text-2xl font-bold">BRE470 Design Certificate</h3>
+                <p className="text-muted-foreground mt-2">
+                  Full interpretive design with check certificate signed by David Miller
+                </p>
+                <div className="mt-6">
+                  <span className="font-heading text-5xl font-bold text-primary">£299.99</span>
+                  <span className="text-muted-foreground ml-2">per design</span>
+                </div>
+                <div className="mt-4 text-sm text-muted-foreground">
+                  Traditional consultancy: <span className="line-through">£500–£1,000</span>
+                </div>
+                <ul className="text-left space-y-2 mt-6 max-w-sm mx-auto">
+                  {[
+                    "Full BRE470 Appendix A calculations",
+                    "Professional check certificate",
+                    "Unique reference number",
+                    "Signed by David Miller TWD",
+                    "Cohesive & granular subgrades",
+                    "23 pre-loaded piling rigs",
+                    "Instant digital delivery",
+                    "Print-ready A4 format",
+                  ].map((f) => (
+                    <li key={f} className="flex items-center gap-2 text-sm">
+                      <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <Link href="/calculator">
+                  <Button size="lg" className="w-full h-14 text-lg font-heading font-bold mt-8 gap-2">
+                    <Calculator className="w-5 h-5" />
+                    Start Your Design
+                  </Button>
+                </Link>
+                <Link href="/calculator?demo=true">
+                  <Button variant="ghost" size="sm" className="mt-3 text-muted-foreground">
+                    Try a free demo calculation first
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>
 
-      {/* David Miller Consultation Section */}
-      <section className="py-12 sm:py-20" id="consultation">
+      {/* David Miller Consultation */}
+      <section className="py-16 bg-background">
         <div className="container">
-          <div className="max-w-4xl mx-auto">
-            <div className="text-center mb-10">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
-                <Award className="w-4 h-4" />
-                <span>Specialist Consultation</span>
-              </div>
-              <h2 className="font-heading text-2xl sm:text-3xl font-bold mb-3">
-                One-to-One Temporary Works Coaching
-              </h2>
-              <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-                Need specialist guidance? Get direct access to an experienced Temporary Works Designer for personalised coaching and design review.
-              </p>
-            </div>
-
-            <Card className="border-2 border-primary/30 shadow-lg overflow-hidden">
+          <div className="max-w-3xl mx-auto">
+            <Card className="border border-border overflow-hidden">
               <CardContent className="p-0">
-                <div className="grid md:grid-cols-5">
-                  {/* Profile side */}
-                  <div className="md:col-span-2 bg-gradient-to-br from-primary/5 to-primary/10 p-8 flex flex-col items-center justify-center text-center">
-                    <div className="w-24 h-24 rounded-full bg-primary/20 flex items-center justify-center mb-4">
-                      <HardHat className="w-12 h-12 text-primary" />
+                <div className="p-8 sm:p-10">
+                  <div className="flex items-start gap-4 mb-6">
+                    <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <HardHat className="w-8 h-8 text-primary" />
                     </div>
-                    <h3 className="font-heading text-xl font-bold">David Miller</h3>
-                    <p className="text-primary font-medium text-sm mt-1">Temporary Works Designer</p>
-                    <div className="mt-4 space-y-2 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-2">
-                        <Award className="w-4 h-4 text-primary" />
-                        <span>BRE470 Specialist</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Building2 className="w-4 h-4 text-primary" />
-                        <span>Working Platform Expert</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Shield className="w-4 h-4 text-primary" />
-                        <span>Temporary Works Coordinator</span>
-                      </div>
+                    <div>
+                      <h3 className="font-heading text-2xl font-bold">David Miller</h3>
+                      <p className="text-primary font-medium">Temporary Works Designer</p>
+                      <p className="text-muted-foreground text-sm">Temporary Works Consulting Ltd</p>
                     </div>
                   </div>
-
-                  {/* Details side */}
-                  <div className="md:col-span-3 p-8">
-                    <h4 className="font-heading font-semibold text-lg mb-4">What You Get</h4>
-                    <div className="space-y-3 mb-6">
-                      <ConsultItem text="One-to-one coaching on BRE470 design methodology" />
-                      <ConsultItem text="Review of your specific working platform designs" />
-                      <ConsultItem text="Understanding temporary works requirements and CDM duties" />
-                      <ConsultItem text="Guidance on ground investigation interpretation" />
-                      <ConsultItem text="Best practice for installation, maintenance and repair" />
-                      <ConsultItem text="Tailored advice for your project-specific challenges" />
-                    </div>
-
-                    <div className="bg-muted/50 rounded-lg p-4 mb-6">
-                      <p className="text-sm text-muted-foreground mb-3">
-                        Enterprise subscribers receive a complimentary 1-hour consultation. Additional sessions available for all subscribers.
-                      </p>
-                      <div className="flex flex-col sm:flex-row gap-3">
-                        <a href="mailto:temporaryworksconsultingltd@outlook.com" className="flex-1">
-                          <Button className="w-full gap-2" size="lg">
-                            <Mail className="w-4 h-4" /> Email David
-                          </Button>
-                        </a>
-                        <a href="tel:+4407900984900" className="flex-1">
-                          <Button variant="outline" className="w-full gap-2" size="lg">
-                            <Phone className="w-4 h-4" /> Call to Book
-                          </Button>
-                        </a>
-                      </div>
-                    </div>
-
-                    <p className="text-xs text-muted-foreground">
-                      All designs must be reviewed by a competent temporary works designer. David Miller provides specialist consultation to help you understand and apply BRE470 correctly.
-                    </p>
+                  <p className="text-muted-foreground mb-6 leading-relaxed">
+                    Need specialist guidance beyond the standard BRE470 design? David offers one-to-one coaching and consultation for complex temporary works scenarios, including slopes greater than 1 in 10, unusual loading conditions, and bespoke platform designs.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <a href="mailto:temporaryworksconsultingltd@outlook.com" className="block">
+                      <Button variant="outline" size="lg" className="w-full h-14 gap-2">
+                        <Mail className="w-5 h-5" />
+                        Email David
+                      </Button>
+                    </a>
+                    <a href="tel:+4407900984900" className="block">
+                      <Button variant="outline" size="lg" className="w-full h-14 gap-2">
+                        <Phone className="w-5 h-5" />
+                        Call to Book
+                      </Button>
+                    </a>
                   </div>
+                  <p className="text-xs text-muted-foreground mt-4 text-center">
+                    Consultation services are separate from the design tool and priced individually.
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -427,75 +317,28 @@ export default function Home() {
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="py-12 sm:py-16 bg-muted/30">
-        <div className="container">
-          <div className="relative rounded-xl overflow-hidden">
-            <img
-              src={SITE_ENGINEER_IMG}
-              alt="Engineer using tablet on construction site"
-              className="w-full h-64 sm:h-80 object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/80 to-black/40 flex items-center">
-              <div className="container">
-                <h2 className="font-heading text-2xl sm:text-3xl font-bold text-white mb-3">
-                  Ready to Save Thousands?
-                </h2>
-                <p className="text-white/80 text-lg mb-6 max-w-md">
-                  Stop paying consultants for every platform design. Subscribe from £9.99/month and design unlimited working platforms on site.
-                </p>
-                {hasAccess ? (
-                  <Link href="/calculator">
-                    <Button size="lg" className="text-base font-semibold h-14 px-8">
-                      Open Design Tool <ArrowRight className="w-5 h-5 ml-2" />
-                    </Button>
-                  </Link>
-                ) : (
-                  <a href="#pricing">
-                    <Button size="lg" className="text-base font-semibold h-14 px-8">
-                      View Plans <ArrowRight className="w-5 h-5 ml-2" />
-                    </Button>
-                  </a>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Footer */}
-      <footer className="mt-auto border-t border-border bg-card py-8">
+      <footer className="bg-card border-t border-border py-8">
         <div className="container">
-          <div className="grid sm:grid-cols-3 gap-6 text-sm text-muted-foreground">
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <HardHat className="w-5 h-5 text-primary" />
-                <span className="font-heading font-bold text-foreground">BRE470 Piling Mat Designer</span>
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded bg-primary flex items-center justify-center">
+                <HardHat className="w-4 h-4 text-primary-foreground" />
               </div>
-              <p>Based on BR 470 (BRE 2004)</p>
-              <p>Working Platforms for Tracked Plant: Good Practice Guide</p>
+              <span className="font-heading font-bold text-sm">BRE470 Piling Mat Designer</span>
             </div>
-            <div>
-              <h4 className="font-semibold text-foreground mb-2">Quick Links</h4>
-              <div className="space-y-1">
-                <a href="#pricing" className="block hover:text-foreground transition-colors">Pricing</a>
-                <a href="#consultation" className="block hover:text-foreground transition-colors">Consultation</a>
-                <Link href="/calculator" className="block hover:text-foreground transition-colors">Free Demo</Link>
-              </div>
-            </div>
-            <div>
-              <h4 className="font-semibold text-foreground mb-2">Contact</h4>
-              <p>David Miller — Temporary Works Designer</p>
-              <a href="mailto:temporaryworksconsultingltd@outlook.com" className="hover:text-foreground transition-colors">
-                temporaryworksconsultingltd@outlook.com
-              </a>
-              <p className="mt-1">
-                <a href="tel:+4407900984900" className="hover:text-foreground transition-colors">07900 984900</a>
+            <div className="text-sm text-muted-foreground text-center sm:text-right">
+              <p>Temporary Works Consulting Ltd</p>
+              <p>
+                <a href="mailto:temporaryworksconsultingltd@outlook.com" className="hover:text-primary transition-colors">
+                  temporaryworksconsultingltd@outlook.com
+                </a>
+                {" | "}
+                <a href="tel:+4407900984900" className="hover:text-primary transition-colors">
+                  07900 984900
+                </a>
               </p>
             </div>
-          </div>
-          <div className="border-t border-border mt-6 pt-6 text-center text-xs text-muted-foreground">
-            <p>This tool is for preliminary design purposes. All designs must be reviewed by a competent geotechnical engineer.</p>
           </div>
         </div>
       </footer>
@@ -503,122 +346,30 @@ export default function Home() {
   );
 }
 
-// ─── Sub-components ──────────────────────────────────────────────────
+// ─── Sub-components ─────────────────────────────────────────────────────
 
-function PricingCard({
-  name, description, monthlyPrice, annualPrice, billing, features, popular, onSubscribe, isPending, hasAccess,
-}: {
-  name: string;
-  description: string;
-  monthlyPrice: number;
-  annualPrice: number;
-  billing: BillingToggle;
-  features: string[];
-  popular?: boolean;
-  onSubscribe: () => void;
-  isPending: boolean;
-  hasAccess: boolean;
-}) {
-  const price = billing === "year" ? annualPrice : monthlyPrice;
-  const displayPrice = (price / 100).toFixed(2);
-  const interval = billing === "year" ? "/year" : "/month";
-
+function FeatureCard({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
   return (
-    <Card className={`relative ${popular ? "border-2 border-primary shadow-xl scale-[1.02]" : "border border-border"}`}>
-      {popular && (
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-          <span className="bg-primary text-primary-foreground text-xs font-bold px-4 py-1 rounded-full flex items-center gap-1">
-            <Star className="w-3 h-3" /> Most Popular
-          </span>
+    <Card className="border border-border hover:shadow-lg transition-shadow">
+      <CardContent className="pt-6">
+        <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center text-primary mb-4">
+          {icon}
         </div>
-      )}
-      <CardContent className="pt-8 pb-8 text-center">
-        <h3 className="font-heading text-xl font-bold mb-1">{name}</h3>
-        <p className="text-sm text-muted-foreground mb-4">{description}</p>
-
-        <div className="mb-6">
-          <span className="font-heading text-4xl font-bold">£{displayPrice}</span>
-          <span className="text-muted-foreground ml-1">{interval}</span>
-        </div>
-
-        <div className="space-y-2.5 text-left mb-8">
-          {features.map((f, i) => (
-            <div key={i} className="flex items-start gap-2.5">
-              <CheckCircle2 className="w-4 h-4 text-success mt-0.5 flex-shrink-0" />
-              <span className="text-sm text-foreground">{f}</span>
-            </div>
-          ))}
-        </div>
-
-        {hasAccess ? (
-          <Link href="/calculator">
-            <Button size="lg" className="w-full h-12 font-semibold" variant={popular ? "default" : "outline"}>
-              Open Design Tool
-            </Button>
-          </Link>
-        ) : (
-          <Button
-            size="lg"
-            className="w-full h-12 font-semibold"
-            variant={popular ? "default" : "outline"}
-            onClick={onSubscribe}
-            disabled={isPending}
-          >
-            {isPending ? "Redirecting..." : `Subscribe — £${displayPrice}${interval}`}
-          </Button>
-        )}
+        <h3 className="font-heading text-lg font-bold mb-2">{title}</h3>
+        <p className="text-muted-foreground text-sm leading-relaxed">{description}</p>
       </CardContent>
     </Card>
   );
 }
 
-function FeatureCard({ icon, title, description, color }: {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  color: 'primary' | 'success' | 'warning';
-}) {
-  const borderColors = {
-    primary: 'border-l-primary',
-    success: 'border-l-success',
-    warning: 'border-l-warning',
-  };
-  const bgColors = {
-    primary: 'bg-primary/10 text-primary',
-    success: 'bg-success/10 text-success',
-    warning: 'bg-warning/10 text-warning',
-  };
-
+function StepCard({ number, title, description }: { number: number; title: string; description: string }) {
   return (
-    <div className={`bg-card rounded-lg border border-border border-l-4 ${borderColors[color]} p-6 shadow-sm`}>
-      <div className={`w-12 h-12 rounded-lg ${bgColors[color]} flex items-center justify-center mb-4`}>
-        {icon}
+    <div className="text-center">
+      <div className="w-14 h-14 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-2xl font-heading font-bold mx-auto mb-4">
+        {number}
       </div>
-      <h3 className="font-heading font-semibold text-lg mb-2">{title}</h3>
-      <p className="text-muted-foreground leading-relaxed">{description}</p>
-    </div>
-  );
-}
-
-function ShareStep({ n, title, desc }: { n: number; title: string; desc: string }) {
-  return (
-    <div className="flex items-start gap-4">
-      <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm flex-shrink-0">
-        {n}
-      </div>
-      <div>
-        <h4 className="font-heading font-semibold">{title}</h4>
-        <p className="text-sm text-muted-foreground">{desc}</p>
-      </div>
-    </div>
-  );
-}
-
-function ConsultItem({ text }: { text: string }) {
-  return (
-    <div className="flex items-start gap-2.5">
-      <CheckCircle2 className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-      <span className="text-sm">{text}</span>
+      <h3 className="font-heading text-lg font-bold mb-2">{title}</h3>
+      <p className="text-muted-foreground text-sm">{description}</p>
     </div>
   );
 }

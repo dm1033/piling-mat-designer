@@ -22,6 +22,13 @@
       "when": 1775222720175,
       "tag": "0002_great_nick_fury",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1775391594074,
+      "tag": "0003_pale_salo",
+      "breakpoints": true
     }
   ]
 }

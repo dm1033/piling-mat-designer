@@ -2,15 +2,15 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
-import { checkUserHasAccess, getUserAccessInfo, createAccessCode, redeemAccessCode, getAccessCodesByUser, getUserPurchases, countAccessCodesUsedByUser } from "./db";
-import { PLANS, getPricePence, type BillingInterval } from "./products";
+import { createDesign, generateCertificateRef, getUserDesigns, getDesignById, countUserDesigns } from "./db";
+import { PRODUCT, CERTIFICATE, formatPrice } from "./products";
 import Stripe from "stripe";
 import { z } from "zod";
 
 const getStripe = () => {
   const key = process.env.STRIPE_SECRET_KEY;
   if (!key) throw new Error("Stripe not configured");
-  return new Stripe(key);
+  return new Stripe(key, { apiVersion: "2025-04-30.basil" as any });
 };
 
 export const appRouter = router({
@@ -24,61 +24,58 @@ export const appRouter = router({
     }),
   }),
 
-  // Subscription & access
-  purchase: router({
-    // Check if the current user has access (simple boolean)
-    hasAccess: protectedProcedure.query(async ({ ctx }) => {
-      const hasAccess = await checkUserHasAccess(ctx.user.id);
-      return { hasAccess };
-    }),
+  // Design purchase & certificate
+  design: router({
+    /** Get product info (price, description) — public */
+    product: publicProcedure.query(() => ({
+      name: PRODUCT.name,
+      description: PRODUCT.description,
+      priceGBP: PRODUCT.priceGBP,
+      priceFormatted: formatPrice(PRODUCT.priceGBP),
+      certificate: CERTIFICATE,
+    })),
 
-    // Get detailed access info including tier, status, period
-    accessInfo: protectedProcedure.query(async ({ ctx }) => {
-      return getUserAccessInfo(ctx.user.id);
-    }),
-
-    // Get available plans (public-ish but needs auth for checkout)
-    plans: publicProcedure.query(() => {
-      return Object.values(PLANS).map(p => ({
-        id: p.id,
-        name: p.name,
-        description: p.description,
-        monthlyPrice: p.monthlyPricePence,
-        annualPrice: p.annualPricePence,
-        maxUsers: p.maxUsers,
-        features: p.features,
-      }));
-    }),
-
-    // Create a Stripe checkout session for a subscription
+    /** Create a Stripe checkout session for a design purchase */
     createCheckout: protectedProcedure
       .input(z.object({
-        planId: z.enum(["individual", "team", "enterprise"]),
-        interval: z.enum(["month", "year"]),
+        projectName: z.string().min(1, "Project name is required"),
+        siteLocation: z.string().optional(),
+        clientName: z.string().optional(),
+        calculationInputs: z.any(),
+        calculationResult: z.any(),
       }))
       .mutation(async ({ ctx, input }) => {
         const stripe = getStripe();
         const origin = ctx.req.headers.origin || ctx.req.headers.referer || "http://localhost:3000";
-        const plan = PLANS[input.planId];
-        if (!plan) throw new Error("Invalid plan");
 
-        const pricePence = getPricePence(input.planId, input.interval as BillingInterval);
+        // Generate a unique certificate reference
+        const certificateRef = await generateCertificateRef();
 
+        // Create the design record (pending payment)
+        const designId = await createDesign({
+          userId: ctx.user.id,
+          certificateRef,
+          amountPence: PRODUCT.priceGBP,
+          projectName: input.projectName,
+          siteLocation: input.siteLocation || undefined,
+          clientName: input.clientName || undefined,
+          calculationInputs: input.calculationInputs,
+          calculationResult: input.calculationResult,
+        });
+
+        // Create Stripe checkout session
         const session = await stripe.checkout.sessions.create({
-          mode: "subscription",
+          mode: "payment",
           payment_method_types: ["card"],
           line_items: [
             {
               price_data: {
-                currency: plan.currency,
+                currency: PRODUCT.currency,
                 product_data: {
-                  name: `BRE470 Piling Mat Designer — ${plan.name}`,
-                  description: plan.description,
+                  name: PRODUCT.name,
+                  description: `Certificate Ref: ${certificateRef} — ${input.projectName}`,
                 },
-                unit_amount: pricePence,
-                recurring: {
-                  interval: input.interval,
-                },
+                unit_amount: PRODUCT.priceGBP,
               },
               quantity: 1,
             },
@@ -86,85 +83,66 @@ export const appRouter = router({
           client_reference_id: ctx.user.id.toString(),
           metadata: {
             user_id: ctx.user.id.toString(),
+            design_id: designId.toString(),
+            certificate_ref: certificateRef,
+            project_name: input.projectName,
             customer_email: ctx.user.email || "",
             customer_name: ctx.user.name || "",
-            plan_tier: input.planId,
-            billing_interval: input.interval,
           },
           customer_email: ctx.user.email || undefined,
           allow_promotion_codes: true,
-          success_url: `${origin}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-          cancel_url: `${origin}/?cancelled=true`,
+          success_url: `${origin}/payment-success?session_id={CHECKOUT_SESSION_ID}&design_id=${designId}`,
+          cancel_url: `${origin}/calculator?cancelled=true`,
         });
 
-        return { checkoutUrl: session.url };
-      }),
-
-    // Create a Stripe billing portal session for managing subscription
-    createPortal: protectedProcedure.mutation(async ({ ctx }) => {
-      const stripe = getStripe();
-      const origin = ctx.req.headers.origin || ctx.req.headers.referer || "http://localhost:3000";
-
-      // Get user's Stripe customer ID
-      const accessInfo = await getUserAccessInfo(ctx.user.id);
-      const { getUserByOpenId } = await import("./db");
-      const user = await getUserByOpenId(ctx.user.openId);
-      if (!user?.stripeCustomerId) {
-        throw new Error("No Stripe customer found. Please contact support.");
-      }
-
-      const portalSession = await stripe.billingPortal.sessions.create({
-        customer: user.stripeCustomerId,
-        return_url: `${origin}/account`,
-      });
-
-      return { portalUrl: portalSession.url };
-    }),
-
-    // Get purchase/payment history
-    history: protectedProcedure.query(async ({ ctx }) => {
-      return getUserPurchases(ctx.user.id);
-    }),
-  }),
-
-  // Access code sharing (Team and Enterprise only)
-  accessCode: router({
-    // Generate a new access code for sharing
-    create: protectedProcedure
-      .input(z.object({ companyName: z.string().optional() }))
-      .mutation(async ({ ctx, input }) => {
-        const accessInfo = await getUserAccessInfo(ctx.user.id);
-        if (!accessInfo.hasAccess) {
-          throw new Error("You must have an active subscription to create access codes");
+        // Update design with session ID
+        const { getDb } = await import("./db");
+        const { designs } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        const db = await getDb();
+        if (db) {
+          await db.update(designs).set({ stripeSessionId: session.id }).where(eq(designs.id, designId));
         }
 
-        // Check if user's tier allows sharing
-        const tier = accessInfo.tier || "individual";
-        if (tier === "individual") {
-          throw new Error("Access code sharing is available on Team and Enterprise plans. Please upgrade to share with your team.");
-        }
-
-        // Check if user has reached their sharing limit
-        const usedCount = await countAccessCodesUsedByUser(ctx.user.id);
-        if (usedCount >= accessInfo.maxUsers) {
-          throw new Error(`You have reached the maximum of ${accessInfo.maxUsers} shared users for your ${tier} plan.`);
-        }
-
-        const code = await createAccessCode(ctx.user.id, input.companyName, tier);
-        return { code };
+        return {
+          checkoutUrl: session.url,
+          designId,
+          certificateRef,
+        };
       }),
 
-    // Redeem an access code
-    redeem: protectedProcedure
-      .input(z.object({ code: z.string().min(1) }))
-      .mutation(async ({ ctx, input }) => {
-        const success = await redeemAccessCode(input.code.toUpperCase().trim(), ctx.user.id);
-        return { success };
-      }),
-
-    // List codes created by the current user
+    /** List all designs for the current user */
     list: protectedProcedure.query(async ({ ctx }) => {
-      return getAccessCodesByUser(ctx.user.id);
+      const designsList = await getUserDesigns(ctx.user.id);
+      return designsList.map(d => ({
+        id: d.id,
+        certificateRef: d.certificateRef,
+        projectName: d.projectName,
+        siteLocation: d.siteLocation,
+        clientName: d.clientName,
+        paymentStatus: d.paymentStatus,
+        certificateIssued: d.certificateIssued,
+        createdAt: d.createdAt,
+      }));
+    }),
+
+    /** Get a specific design with full calculation data (for certificate) */
+    get: protectedProcedure
+      .input(z.object({ designId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const design = await getDesignById(input.designId, ctx.user.id);
+        if (!design) throw new Error("Design not found");
+        if (design.paymentStatus !== "completed") throw new Error("Payment not completed");
+        return {
+          ...design,
+          certificate: CERTIFICATE,
+        };
+      }),
+
+    /** Count total paid designs for the current user */
+    count: protectedProcedure.query(async ({ ctx }) => {
+      const count = await countUserDesigns(ctx.user.id);
+      return { count };
     }),
   }),
 });

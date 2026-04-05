@@ -1,290 +1,219 @@
 /**
- * Account Page - Subscription management, access codes, and billing
+ * My Designs / Account Page — Per-design certificate model
+ * Shows list of purchased design certificates with links to view each one.
  */
-import { useState } from "react";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
-import { toast } from "sonner";
+import { getLoginUrl } from "@/const";
 import {
-  HardHat, Calculator, BookOpen, Users, Copy, CheckCircle2,
-  CreditCard, Shield, Clock, ArrowRight, Plus, ExternalLink
+  HardHat, ArrowLeft, FileCheck, Calculator, BookOpen,
+  Loader2, FileText, Clock, CheckCircle2
 } from "lucide-react";
 
 export default function Account() {
-  const { user, isAuthenticated } = useAuth({ redirectOnUnauthenticated: true });
-  const [companyName, setCompanyName] = useState("");
+  const { user, isAuthenticated, loading: authLoading, logout } = useAuth();
+  const [, setLocation] = useLocation();
 
-  const accessInfo = trpc.purchase.accessInfo.useQuery(undefined, {
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      window.location.href = getLoginUrl();
+    }
+  }, [authLoading, isAuthenticated]);
+
+  // Fetch user's designs
+  const designsQuery = trpc.design.list.useQuery(undefined, {
     enabled: isAuthenticated,
   });
-  const accessCodes = trpc.accessCode.list.useQuery(undefined, {
+  const countQuery = trpc.design.count.useQuery(undefined, {
     enabled: isAuthenticated,
   });
 
-  const createCode = trpc.accessCode.create.useMutation({
-    onSuccess: (data) => {
-      toast.success(`Access code created: ${data.code}`);
-      setCompanyName("");
-      accessCodes.refetch();
-    },
-    onError: (err) => {
-      toast.error(err.message);
-    },
-  });
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
-  const createPortal = trpc.purchase.createPortal.useMutation({
-    onSuccess: (data) => {
-      if (data.portalUrl) {
-        window.open(data.portalUrl, "_blank");
-      }
-    },
-    onError: (err) => {
-      toast.error(err.message || "Failed to open billing portal");
-    },
-  });
-
-  const info = accessInfo.data;
-  const hasAccess = info?.hasAccess === true;
-  const tier = info?.tier || null;
-  const tierName = tier === "enterprise" ? "Enterprise" : tier === "team" ? "Team" : tier === "individual" ? "Individual" : "None";
-  const canShare = tier === "team" || tier === "enterprise";
-  const maxUsers = info?.maxUsers || 0;
-  const usedCodes = accessCodes.data?.filter(c => c.isUsed).length || 0;
+  const designs = designsQuery.data || [];
+  const totalDesigns = countQuery.data?.count || 0;
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-background">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-card/95 backdrop-blur border-b border-border">
         <div className="container flex items-center justify-between h-14">
-          <Link href="/">
-            <div className="flex items-center gap-2 cursor-pointer">
-              <div className="w-8 h-8 rounded bg-primary flex items-center justify-center">
-                <HardHat className="w-5 h-5 text-primary-foreground" />
-              </div>
-              <span className="font-heading font-bold text-lg tracking-tight">BRE470</span>
-            </div>
-          </Link>
-          <nav className="flex items-center gap-2">
-            {hasAccess && (
-              <>
-                <Link href="/reference">
-                  <Button variant="ghost" size="sm" className="text-sm">
-                    <BookOpen className="w-4 h-4 mr-1" /> Reference
-                  </Button>
-                </Link>
-                <Link href="/calculator">
-                  <Button size="sm" className="text-sm font-semibold">
-                    <Calculator className="w-4 h-4 mr-1" /> Design Tool
-                  </Button>
-                </Link>
-              </>
-            )}
-          </nav>
+          <div className="flex items-center gap-2">
+            <Link href="/">
+              <Button variant="ghost" size="sm" className="gap-1">
+                <ArrowLeft className="w-4 h-4" /> Home
+              </Button>
+            </Link>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link href="/calculator">
+              <Button variant="ghost" size="sm" className="text-sm">
+                <Calculator className="w-4 h-4 mr-1" /> Calculator
+              </Button>
+            </Link>
+            <Link href="/reference">
+              <Button variant="ghost" size="sm" className="text-sm">
+                <BookOpen className="w-4 h-4 mr-1" /> Reference
+              </Button>
+            </Link>
+          </div>
         </div>
       </header>
 
-      <main className="flex-1 py-8">
-        <div className="container max-w-3xl">
-          <h1 className="font-heading text-2xl sm:text-3xl font-bold mb-6">My Account</h1>
+      <main className="flex-1 pb-16">
+        <div className="container py-6 space-y-6">
+          {/* Title & User Info */}
+          <div className="flex items-start justify-between">
+            <div>
+              <h1 className="font-heading text-2xl sm:text-3xl font-bold">My Designs</h1>
+              <p className="text-muted-foreground mt-1">
+                {user?.name ? `${user.name} — ` : ""}
+                {totalDesigns} certified design{totalDesigns !== 1 ? "s" : ""}
+              </p>
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => logout()}>
+              Sign Out
+            </Button>
+          </div>
 
-          {/* Subscription Status Card */}
-          <Card className="mb-6">
-            <CardContent className="pt-6">
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h2 className="font-heading text-lg font-semibold flex items-center gap-2">
-                    <Shield className="w-5 h-5 text-primary" />
-                    Subscription
-                  </h2>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {user?.name || user?.email || "User"}
-                  </p>
-                </div>
-                {hasAccess && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-success/10 text-success text-sm font-medium">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> Active
-                  </span>
-                )}
-              </div>
-
-              {hasAccess ? (
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Plan</p>
-                      <p className="font-heading font-semibold text-lg">{tierName}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Status</p>
-                      <p className="font-semibold capitalize">{info?.status || "Active"}</p>
-                    </div>
-                    {info?.periodEnd && (
-                      <div>
-                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Next Billing</p>
-                        <p className="font-semibold">{new Date(info.periodEnd).toLocaleDateString("en-GB")}</p>
-                      </div>
-                    )}
-                    {canShare && (
-                      <div>
-                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Team Seats</p>
-                        <p className="font-semibold">{usedCodes} / {maxUsers === 999 ? "Unlimited" : maxUsers}</p>
-                      </div>
-                    )}
+          {/* Quick Actions */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Link href="/calculator">
+              <Card className="cursor-pointer hover:shadow-md transition-shadow">
+                <CardContent className="pt-4 pb-4 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Calculator className="w-5 h-5 text-primary" />
                   </div>
-
-                  <div className="flex gap-3">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-2"
-                      onClick={() => createPortal.mutate()}
-                      disabled={createPortal.isPending}
-                    >
-                      <CreditCard className="w-4 h-4" />
-                      {createPortal.isPending ? "Opening..." : "Manage Billing"}
-                      <ExternalLink className="w-3 h-3" />
-                    </Button>
-                    {tier === "individual" && (
-                      <Link href="/#pricing">
-                        <Button variant="outline" size="sm" className="gap-2">
-                          <ArrowRight className="w-4 h-4" /> Upgrade Plan
-                        </Button>
-                      </Link>
-                    )}
+                  <div>
+                    <p className="font-heading font-semibold text-sm">New Design</p>
+                    <p className="text-xs text-muted-foreground">Start a new BRE470 calculation</p>
                   </div>
-                </div>
-              ) : (
-                <div className="text-center py-4">
-                  <p className="text-muted-foreground mb-4">You don't have an active subscription.</p>
-                  <Link href="/#pricing">
-                    <Button className="gap-2">
-                      View Plans <ArrowRight className="w-4 h-4" />
-                    </Button>
-                  </Link>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+            </Link>
+            <Link href="/reference">
+              <Card className="cursor-pointer hover:shadow-md transition-shadow">
+                <CardContent className="pt-4 pb-4 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <BookOpen className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-heading font-semibold text-sm">BRE470 Reference</p>
+                    <p className="text-xs text-muted-foreground">Design tables and guidance</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          </div>
 
-          {/* Quick Links */}
-          {hasAccess && (
-            <Card className="mb-6">
-              <CardContent className="pt-6">
-                <h2 className="font-heading text-lg font-semibold mb-4">Quick Links</h2>
-                <div className="grid sm:grid-cols-2 gap-3">
-                  <Link href="/calculator">
-                    <Button variant="outline" className="w-full h-12 justify-start gap-3">
-                      <Calculator className="w-5 h-5 text-primary" />
-                      <span>Design Tool</span>
-                    </Button>
-                  </Link>
-                  <Link href="/reference">
-                    <Button variant="outline" className="w-full h-12 justify-start gap-3">
-                      <BookOpen className="w-5 h-5 text-primary" />
-                      <span>BRE470 Reference</span>
-                    </Button>
-                  </Link>
+          {/* Designs List */}
+          {designsQuery.isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-6 h-6 animate-spin text-primary mr-2" />
+              <span className="text-muted-foreground">Loading designs...</span>
+            </div>
+          ) : designs.length === 0 ? (
+            <Card>
+              <CardContent className="pt-8 pb-8 text-center">
+                <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+                  <FileText className="w-8 h-8 text-muted-foreground" />
                 </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Access Code Sharing - Team & Enterprise only */}
-          {hasAccess && canShare && (
-            <Card className="mb-6">
-              <CardContent className="pt-6">
-                <h2 className="font-heading text-lg font-semibold flex items-center gap-2 mb-2">
-                  <Users className="w-5 h-5 text-primary" />
-                  Team Access Codes
-                </h2>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Generate access codes to share the tool with construction companies on your project.
-                  {maxUsers !== 999 && ` You can share with up to ${maxUsers} users on your ${tierName} plan.`}
+                <h3 className="font-heading text-lg font-bold mb-2">No designs yet</h3>
+                <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
+                  Run a calculation and purchase a design certificate to see it here.
                 </p>
-
-                {/* Generate new code */}
-                <div className="flex gap-2 mb-6">
-                  <Input
-                    placeholder="Company name (optional)"
-                    value={companyName}
-                    onChange={(e) => setCompanyName(e.target.value)}
-                    className="h-11"
-                  />
-                  <Button
-                    onClick={() => createCode.mutate({ companyName: companyName || undefined })}
-                    disabled={createCode.isPending}
-                    className="h-11 gap-2 whitespace-nowrap"
-                  >
-                    <Plus className="w-4 h-4" />
-                    {createCode.isPending ? "Creating..." : "Generate Code"}
-                  </Button>
-                </div>
-
-                {/* Existing codes */}
-                {accessCodes.data && accessCodes.data.length > 0 && (
-                  <div className="space-y-2">
-                    <h3 className="text-sm font-medium text-muted-foreground">Generated Codes</h3>
-                    {accessCodes.data.map((code) => (
-                      <div
-                        key={code.id}
-                        className={`flex items-center justify-between p-3 rounded-lg border ${code.isUsed ? "bg-muted/30 border-border" : "bg-success/5 border-success/20"}`}
-                      >
-                        <div>
-                          <code className="font-mono text-sm font-semibold">{code.code}</code>
-                          {code.companyName && (
-                            <span className="text-xs text-muted-foreground ml-2">— {code.companyName}</span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {code.isUsed ? (
-                            <span className="text-xs text-muted-foreground flex items-center gap-1">
-                              <CheckCircle2 className="w-3 h-3" /> Redeemed
-                            </span>
-                          ) : (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 gap-1"
-                              onClick={() => {
-                                navigator.clipboard.writeText(code.code);
-                                toast.success("Code copied to clipboard");
-                              }}
-                            >
-                              <Copy className="w-3.5 h-3.5" /> Copy
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Individual plan - upgrade prompt for sharing */}
-          {hasAccess && tier === "individual" && (
-            <Card className="border-primary/20">
-              <CardContent className="pt-6 text-center">
-                <Users className="w-8 h-8 text-primary mx-auto mb-3" />
-                <h3 className="font-heading font-semibold mb-2">Need to share with your team?</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Upgrade to Team (up to 10 users) or Enterprise (unlimited) to generate access codes for your construction companies.
-                </p>
-                <Link href="/#pricing">
-                  <Button variant="outline" className="gap-2">
-                    View Upgrade Options <ArrowRight className="w-4 h-4" />
+                <Link href="/calculator">
+                  <Button size="lg" className="gap-2">
+                    <Calculator className="w-5 h-5" />
+                    Start Your First Design
                   </Button>
                 </Link>
               </CardContent>
             </Card>
+          ) : (
+            <div className="space-y-3">
+              {designs.map((design) => (
+                <DesignCard key={design.id} design={design} />
+              ))}
+            </div>
           )}
         </div>
       </main>
     </div>
+  );
+}
+
+interface DesignCardDesign {
+  id: number;
+  certificateRef: string;
+  projectName: string | null;
+  siteLocation: string | null;
+  clientName: string | null;
+  paymentStatus: string;
+  certificateIssued: boolean;
+  createdAt: Date;
+}
+
+function DesignCard({ design }: { design: DesignCardDesign }) {
+  const isPaid = design.paymentStatus === "completed";
+  const dateStr = new Date(design.createdAt).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+
+  return (
+    <Card className={`${isPaid ? "border-success/30" : "border-warning/30"}`}>
+      <CardContent className="pt-4 pb-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-3 min-w-0">
+            <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
+              isPaid ? "bg-success/10" : "bg-warning/10"
+            }`}>
+              {isPaid ? (
+                <CheckCircle2 className="w-5 h-5 text-success" />
+              ) : (
+                <Clock className="w-5 h-5 text-warning" />
+              )}
+            </div>
+            <div className="min-w-0">
+              <p className="font-heading font-semibold text-sm truncate">
+                {design.projectName || "Untitled Project"}
+              </p>
+              <p className="font-mono text-xs text-primary mt-0.5">{design.certificateRef}</p>
+              <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                <span>{dateStr}</span>
+                {design.siteLocation && (
+                  <>
+                    <span>·</span>
+                    <span className="truncate">{design.siteLocation}</span>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {isPaid && (
+            <Link href={`/certificate/${design.id}`}>
+              <Button variant="outline" size="sm" className="gap-1 shrink-0">
+                <FileCheck className="w-4 h-4" />
+                View
+              </Button>
+            </Link>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
