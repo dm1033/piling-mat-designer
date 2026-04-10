@@ -125,3 +125,8 @@
 - [x] Write vitest tests for admin procedures (13 tests, all passing)
 - [x] All 78 tests passing across 6 test files
 - [x] Save checkpoint and deliver
+
+## Bug Fix: Duplicate React Instance
+- [x] Fix duplicate React causing 'Invalid hook call' in TRPCProvider
+- [x] Fix Vite websocket connection failure (resolved by fresh node_modules install)
+- [x] Clear Vite dep cache and verify fix (all pages rendering, 0 console errors)
