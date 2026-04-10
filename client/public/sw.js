@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bre470-pwa-v2';
+const CACHE_NAME = 'bre470-pwa-v3';
 const STATIC_ASSETS = [
   '/',
   '/calculator',
@@ -15,7 +15,7 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-// Activate: clean up old caches
+// Activate: clean up ALL old caches to prevent stale module issues
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -29,7 +29,7 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch: network-first strategy for API calls, cache-first for static assets
+// Fetch: network-first for everything except images/fonts
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
@@ -39,6 +39,12 @@ self.addEventListener('fetch', (event) => {
 
   // Skip API calls and auth routes - always go to network
   if (url.pathname.startsWith('/api/')) return;
+
+  // NEVER cache Vite internal files - these change frequently and caching
+  // them causes duplicate module instances (especially React)
+  if (url.pathname.includes('.vite/') || url.pathname.includes('@vite/') || url.pathname.includes('@fs/')) {
+    return;
+  }
 
   // For navigation requests (HTML pages), try network first, fall back to cache
   if (request.mode === 'navigate') {
@@ -54,7 +60,23 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // For static assets (JS, CSS, images, fonts), cache-first
+  // For JS and CSS files, use network-first to avoid stale module issues
+  if (url.pathname.endsWith('.js') || url.pathname.endsWith('.css') || url.pathname.endsWith('.mjs')) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
+          return response;
+        })
+        .catch(() => caches.match(request))
+    );
+    return;
+  }
+
+  // For images, fonts, and other static assets, cache-first is fine
   event.respondWith(
     caches.match(request).then((cached) => {
       if (cached) return cached;

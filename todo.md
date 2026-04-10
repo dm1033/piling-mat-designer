@@ -130,3 +130,11 @@
 - [x] Fix duplicate React causing 'Invalid hook call' in TRPCProvider
 - [x] Fix Vite websocket connection failure (resolved by fresh node_modules install)
 - [x] Clear Vite dep cache and verify fix (all pages rendering, 0 console errors)
+
+## Bug Fix: Persistent Duplicate React (v2)
+- [x] Root cause: Service worker (sw.js v2) used cache-first for ALL static assets including Vite optimized deps
+- [x] When Vite regenerated deps with new hashes, SW served stale cached React chunk alongside fresh one
+- [x] Fix: Updated sw.js to v3 — never caches .vite/ files, uses network-first for JS/CSS
+- [x] Added all deps to optimizeDeps.include to prevent two-pass optimization
+- [x] Verified: all pages render correctly with 0 application errors (Vite HMR websocket warning remains in dev proxy environment — does not affect production)
+- [x] All 78 tests passing across 6 test files

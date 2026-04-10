@@ -163,7 +163,35 @@ export default defineConfig({
     dedupe: ["react", "react-dom", "@tanstack/react-query"],
   },
   optimizeDeps: {
-    include: ["react", "react-dom", "@trpc/react-query", "@tanstack/react-query"],
+    // Include ALL deps upfront to prevent two-pass optimization which causes
+    // duplicate React instances (same chunk loaded with different version hashes)
+    include: [
+      "react",
+      "react-dom",
+      "react-dom/client",
+      "react/jsx-runtime",
+      "react/jsx-dev-runtime",
+      "@trpc/react-query",
+      "@trpc/client",
+      "@tanstack/react-query",
+      "superjson",
+      "wouter",
+      "next-themes",
+      "sonner",
+      "lucide-react",
+      "clsx",
+      "tailwind-merge",
+      "class-variance-authority",
+      "@radix-ui/react-avatar",
+      "@radix-ui/react-dialog",
+      "@radix-ui/react-dropdown-menu",
+      "@radix-ui/react-label",
+      "@radix-ui/react-separator",
+      "@radix-ui/react-slot",
+      "@radix-ui/react-switch",
+      "@radix-ui/react-tooltip",
+    ],
+
   },
   envDir: path.resolve(import.meta.dirname),
   root: path.resolve(import.meta.dirname, "client"),
@@ -174,6 +202,11 @@ export default defineConfig({
   },
   server: {
     host: true,
+    hmr: {
+      // Fix websocket connection through the proxy
+      clientPort: 443,
+      protocol: "wss",
+    },
     allowedHosts: [
       ".manuspre.computer",
       ".manus.computer",
