@@ -17,7 +17,7 @@ const HERO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663349554749/hMJrH
 const CROSS_SECTION_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663349554749/hMJrHrZWZ2XC9JAvjXeKjs/platform-layers-PcjvRgwvXBiEZzaTKeBrTN.webp";
 
 export default function Home() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -43,6 +43,13 @@ export default function Home() {
                     <FileCheck className="w-4 h-4 mr-1" /> My Designs
                   </Button>
                 </Link>
+                {user?.role === "admin" && (
+                  <Link href="/admin">
+                    <Button variant="ghost" size="sm" className="text-sm text-primary">
+                      <Shield className="w-4 h-4 mr-1" /> Admin
+                    </Button>
+                  </Link>
+                )}
               </>
             )}
             <Link href="/calculator">

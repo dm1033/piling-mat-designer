@@ -1,8 +1,8 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
-import { createDesign, generateCertificateRef, getUserDesigns, getDesignById, countUserDesigns } from "./db";
+import { publicProcedure, protectedProcedure, adminProcedure, router } from "./_core/trpc";
+import { createDesign, generateCertificateRef, getUserDesigns, getDesignById, countUserDesigns, getAllUsers, getAllDesigns, getDesignByIdAdmin, getAdminStats } from "./db";
 import { PRODUCT, CERTIFICATE, formatPrice } from "./products";
 import Stripe from "stripe";
 import { z } from "zod";
@@ -144,6 +144,40 @@ export const appRouter = router({
       const count = await countUserDesigns(ctx.user.id);
       return { count };
     }),
+  }),
+
+  // Admin panel procedures (role === 'admin' only)
+  admin: router({
+    /** Dashboard stats: user count, design count, revenue */
+    stats: adminProcedure.query(async () => {
+      const stats = await getAdminStats();
+      return {
+        ...stats,
+        totalRevenueFormatted: formatPrice(stats.totalRevenuePence),
+      };
+    }),
+
+    /** List all registered users with design counts */
+    users: adminProcedure.query(async () => {
+      return getAllUsers();
+    }),
+
+    /** List all designs/certificates with user info */
+    designs: adminProcedure.query(async () => {
+      return getAllDesigns();
+    }),
+
+    /** Get a specific design with full data (admin — no user restriction) */
+    designDetail: adminProcedure
+      .input(z.object({ designId: z.number() }))
+      .query(async ({ input }) => {
+        const design = await getDesignByIdAdmin(input.designId);
+        if (!design) throw new Error("Design not found");
+        return {
+          ...design,
+          certificate: CERTIFICATE,
+        };
+      }),
   }),
 });
 

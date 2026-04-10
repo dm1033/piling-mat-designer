@@ -111,3 +111,17 @@
 - [x] Rewrite webhook-integration.test.ts for per-design model (14 tests)
 - [x] All 65 tests passing across 5 test files
 - [x] Save checkpoint and deliver
+
+## Admin Panel
+- [x] Add admin DB helpers (getAllUsers, getAllDesigns, getAdminStats)
+- [x] Add admin tRPC procedures (admin.users, admin.designs, admin.stats) using adminProcedure
+- [x] Create admin Dashboard page with summary stats (total users, total designs, total revenue)
+- [x] Create admin Users page with table listing all users (name, email, role, designs count, joined date)
+- [x] Create admin Designs page with table listing all certificates (ref, project, user, payment status, date)
+- [x] Create admin design detail view to see full certificate data
+- [x] Wire AdminLayout with sidebar navigation (Dashboard, Users, Designs, Back to Site)
+- [x] Add /admin routes to App.tsx with role-based access control (adminProcedure)
+- [x] Add Admin link in header nav (visible only to admin role users)
+- [x] Write vitest tests for admin procedures (13 tests, all passing)
+- [x] All 78 tests passing across 6 test files
+- [x] Save checkpoint and deliver

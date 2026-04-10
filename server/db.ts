@@ -214,3 +214,133 @@ export async function countUserDesigns(userId: number): Promise<number> {
 
   return result[0]?.count ?? 0;
 }
+
+// ─── Admin helpers ────────────────────────────────────────────────────
+
+/** Get all users with their design counts (admin only) */
+export async function getAllUsers() {
+  const db = await getDb();
+  if (!db) return [];
+
+  const allUsers = await db
+    .select()
+    .from(users)
+    .orderBy(desc(users.createdAt));
+
+  // Get design counts per user
+  const designCounts = await db
+    .select({
+      userId: designs.userId,
+      total: sql<number>`count(*)`,
+      paid: sql<number>`SUM(CASE WHEN ${designs.paymentStatus} = 'completed' THEN 1 ELSE 0 END)`,
+    })
+    .from(designs)
+    .groupBy(designs.userId);
+
+  const countMap = new Map(designCounts.map(d => [d.userId, { total: d.total, paid: d.paid }]));
+
+  return allUsers.map(u => ({
+    id: u.id,
+    openId: u.openId,
+    name: u.name,
+    email: u.email,
+    role: u.role,
+    stripeCustomerId: u.stripeCustomerId,
+    createdAt: u.createdAt,
+    lastSignedIn: u.lastSignedIn,
+    designsTotal: countMap.get(u.id)?.total ?? 0,
+    designsPaid: countMap.get(u.id)?.paid ?? 0,
+  }));
+}
+
+/** Get all designs with user info (admin only) */
+export async function getAllDesigns() {
+  const db = await getDb();
+  if (!db) return [];
+
+  const allDesigns = await db
+    .select({
+      id: designs.id,
+      userId: designs.userId,
+      certificateRef: designs.certificateRef,
+      stripePaymentIntentId: designs.stripePaymentIntentId,
+      stripeSessionId: designs.stripeSessionId,
+      amountPence: designs.amountPence,
+      currency: designs.currency,
+      paymentStatus: designs.paymentStatus,
+      projectName: designs.projectName,
+      siteLocation: designs.siteLocation,
+      clientName: designs.clientName,
+      certificateIssued: designs.certificateIssued,
+      certificateIssuedAt: designs.certificateIssuedAt,
+      createdAt: designs.createdAt,
+      userName: users.name,
+      userEmail: users.email,
+    })
+    .from(designs)
+    .leftJoin(users, eq(designs.userId, users.id))
+    .orderBy(desc(designs.createdAt));
+
+  return allDesigns;
+}
+
+/** Get a specific design by ID (admin — no user restriction) */
+export async function getDesignByIdAdmin(designId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+
+  const result = await db
+    .select()
+    .from(designs)
+    .where(eq(designs.id, designId))
+    .limit(1);
+
+  if (result.length === 0) return undefined;
+
+  // Also fetch the user info
+  const design = result[0];
+  const userResult = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, design.userId))
+    .limit(1);
+
+  return {
+    ...design,
+    user: userResult.length > 0 ? {
+      id: userResult[0].id,
+      name: userResult[0].name,
+      email: userResult[0].email,
+      role: userResult[0].role,
+    } : null,
+  };
+}
+
+/** Get admin dashboard stats */
+export async function getAdminStats() {
+  const db = await getDb();
+  if (!db) return { totalUsers: 0, totalDesigns: 0, paidDesigns: 0, pendingDesigns: 0, totalRevenuePence: 0 };
+
+  const [userCount] = await db.select({ count: sql<number>`count(*)` }).from(users);
+  const [designCount] = await db.select({ count: sql<number>`count(*)` }).from(designs);
+  const [paidCount] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(designs)
+    .where(eq(designs.paymentStatus, "completed"));
+  const [pendingCount] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(designs)
+    .where(eq(designs.paymentStatus, "pending"));
+  const [revenue] = await db
+    .select({ total: sql<number>`COALESCE(SUM(${designs.amountPence}), 0)` })
+    .from(designs)
+    .where(eq(designs.paymentStatus, "completed"));
+
+  return {
+    totalUsers: userCount?.count ?? 0,
+    totalDesigns: designCount?.count ?? 0,
+    paidDesigns: paidCount?.count ?? 0,
+    pendingDesigns: pendingCount?.count ?? 0,
+    totalRevenuePence: revenue?.total ?? 0,
+  };
+}

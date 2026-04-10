@@ -160,6 +160,10 @@ export default defineConfig({
       "@shared": path.resolve(import.meta.dirname, "shared"),
       "@assets": path.resolve(import.meta.dirname, "attached_assets"),
     },
+    dedupe: ["react", "react-dom", "@tanstack/react-query"],
+  },
+  optimizeDeps: {
+    include: ["react", "react-dom", "@trpc/react-query", "@tanstack/react-query"],
   },
   envDir: path.resolve(import.meta.dirname),
   root: path.resolve(import.meta.dirname, "client"),
