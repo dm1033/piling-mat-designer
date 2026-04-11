@@ -17,6 +17,8 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminDesigns from "./pages/admin/AdminDesigns";
 import AdminDesignDetail from "./pages/admin/AdminDesignDetail";
+import Blog from "./pages/Blog";
+import BlogArticle from "./pages/BlogArticle";
 
 function Router() {
   return (
@@ -30,6 +32,8 @@ function Router() {
       <Route path="/my-designs" component={Account} />
       <Route path="/certificate/:id" component={Certificate} />
       <Route path="/redeem" component={Redeem} />
+      <Route path="/blog" component={Blog} />
+      <Route path="/blog/:slug" component={BlogArticle} />
 
       {/* Admin routes — wrapped in AdminLayout with role check */}
       <Route path="/admin" nest>

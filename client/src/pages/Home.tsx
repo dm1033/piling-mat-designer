@@ -31,6 +31,11 @@ export default function Home() {
             <span className="font-heading font-bold text-lg tracking-tight">BRE470</span>
           </div>
           <nav className="flex items-center gap-2">
+            <Link href="/blog">
+              <Button variant="ghost" size="sm" className="text-sm">
+                <BookOpen className="w-4 h-4 mr-1" /> Blog
+              </Button>
+            </Link>
             {isAuthenticated && (
               <>
                 <Link href="/reference">
@@ -325,26 +330,43 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-card border-t border-border py-8">
+      <footer className="bg-card border-t border-border py-10">
         <div className="container">
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded bg-primary flex items-center justify-center">
-                <HardHat className="w-4 h-4 text-primary-foreground" />
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-6 h-6 rounded bg-primary flex items-center justify-center">
+                  <HardHat className="w-4 h-4 text-primary-foreground" />
+                </div>
+                <span className="font-heading font-bold text-sm">BRE470 Piling Mat Designer</span>
               </div>
-              <span className="font-heading font-bold text-sm">BRE470 Piling Mat Designer</span>
-            </div>
-            <div className="text-sm text-muted-foreground text-center sm:text-right">
-              <p>Temporary Works Consulting Ltd</p>
-              <p>
+              <p className="text-sm text-muted-foreground">Temporary Works Consulting Ltd</p>
+              <p className="text-sm text-muted-foreground mt-1">
                 <a href="mailto:temporaryworksconsultingltd@outlook.com" className="hover:text-primary transition-colors">
                   temporaryworksconsultingltd@outlook.com
                 </a>
-                {" | "}
+              </p>
+              <p className="text-sm text-muted-foreground">
                 <a href="tel:+4407900984900" className="hover:text-primary transition-colors">
                   07900 984900
                 </a>
               </p>
+            </div>
+            <div>
+              <h4 className="font-heading font-bold text-sm mb-3">Quick Links</h4>
+              <ul className="space-y-1.5 text-sm text-muted-foreground">
+                <li><Link href="/calculator" className="hover:text-primary transition-colors">Design Tool</Link></li>
+                <li><Link href="/blog" className="hover:text-primary transition-colors">Knowledge Base</Link></li>
+                <li><Link href="/reference" className="hover:text-primary transition-colors">BRE470 Reference (Login Required)</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-heading font-bold text-sm mb-3">Popular Articles</h4>
+              <ul className="space-y-1.5 text-sm text-muted-foreground">
+                <li><Link href="/blog/what-is-bre470" className="hover:text-primary transition-colors">What Is BRE470?</Link></li>
+                <li><Link href="/blog/how-to-design-working-platform" className="hover:text-primary transition-colors">How to Design a Working Platform</Link></li>
+                <li><Link href="/blog/piling-mat-design-calculator" className="hover:text-primary transition-colors">Piling Mat Design Calculator</Link></li>
+              </ul>
             </div>
           </div>
         </div>

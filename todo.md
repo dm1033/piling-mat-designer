@@ -138,3 +138,27 @@
 - [x] Added all deps to optimizeDeps.include to prevent two-pass optimization
 - [x] Verified: all pages render correctly with 0 application errors (Vite HMR websocket warning remains in dev proxy environment — does not affect production)
 - [x] All 78 tests passing across 6 test files
+
+## SEO Optimisation
+- [x] Audit current meta tags, title, description across all pages
+- [x] Add SEO meta tags (title, description, keywords) to index.html
+- [x] Add Open Graph and Twitter Card meta tags for social sharing
+- [x] Add JSON-LD structured data (Product, Organization, FAQPage, WebApplication)
+- [x] Create sitemap.xml with all public pages (9 URLs)
+- [x] Create robots.txt with sitemap reference
+- [x] Add canonical URL and geo targeting meta tags
+- [x] Build blog/articles section with 5 SEO-rich articles:
+  - [x] Article 1: What is BRE470 and Why It Matters for Piling
+  - [x] Article 2: How to Design a Working Platform to BRE470
+  - [x] Article 3: Piling Mat Design Calculator — Save 50-70% vs Consultants
+  - [x] Article 4: Temporary Works Coordinator Guide to Platform Certificates
+  - [x] Article 5: Choosing the Right Piling Rig — Track Pressures Explained
+- [x] Blog listing page (/blog) with article cards, hero images, tags
+- [x] Individual article page (/blog/:slug) with TOC, share links, prev/next nav
+- [x] Blog routes added to App.tsx
+- [x] Blog link added to header navigation (visible to all users)
+- [x] Internal linking: footer Quick Links + Popular Articles, CTA in each article
+- [x] Dynamic document title and meta description per article
+- [x] LinkedIn and Email share links on each article
+- [x] All 78 tests passing across 6 test files
+- [x] Save checkpoint and deliver
