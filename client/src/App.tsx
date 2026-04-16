@@ -19,6 +19,8 @@ import AdminDesigns from "./pages/admin/AdminDesigns";
 import AdminDesignDetail from "./pages/admin/AdminDesignDetail";
 import Blog from "./pages/Blog";
 import BlogArticle from "./pages/BlogArticle";
+import CPD from "./pages/CPD";
+import AdminCpdRequests from "./pages/admin/AdminCpdRequests";
 
 function Router() {
   return (
@@ -34,6 +36,7 @@ function Router() {
       <Route path="/redeem" component={Redeem} />
       <Route path="/blog" component={Blog} />
       <Route path="/blog/:slug" component={BlogArticle} />
+      <Route path="/cpd" component={CPD} />
 
       {/* Admin routes — wrapped in AdminLayout with role check */}
       <Route path="/admin" nest>
@@ -43,6 +46,7 @@ function Router() {
             <Route path="/users" component={AdminUsers} />
             <Route path="/designs" component={AdminDesigns} />
             <Route path="/designs/:id" component={AdminDesignDetail} />
+            <Route path="/cpd-requests" component={AdminCpdRequests} />
             <Route component={NotFound} />
           </Switch>
         </AdminLayout>

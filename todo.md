@@ -177,3 +177,20 @@
 - [x] Add Share/Referral section to homepage (LinkedIn, Email, Copy Link)
 - [x] All 88 tests passing across 7 test files
 - [x] Save checkpoint and deliver
+
+## Google Analytics, CPD Page & Industry Article
+- [x] Add Google Analytics tracking to the site (Manus Umami analytics already configured in index.html)
+- [x] Build CPD Presentation Request page (/cpd)
+  - [x] Overview of CPD talk: "BRE470 Compliance Made Simple"
+  - [x] Learning outcomes, duration, target audience
+  - [x] Request form (name, company, email, preferred date, number of attendees)
+  - [x] Store CPD requests in database and notify admin
+- [x] Add CPD link to navigation (header + footer)
+- [x] Add /cpd to sitemap.xml (10 URLs total)
+- [x] Admin CPD Requests page with status management
+- [x] Write professional article for industry bodies (FPS, TWf, ICE, Ground Engineering)
+  - [x] Article: "Working Platform Design in the Digital Age"
+  - [x] Suitable for newsletter submission to FPS, TWf, ICE, Ground Engineering magazine
+  - [x] Include problem statement, solution, benefits, call to action
+- [x] Add routes, navigation, run tests (88 tests passing, 0 TS errors)
+- [x] Save checkpoint and deliver

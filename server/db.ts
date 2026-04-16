@@ -1,6 +1,6 @@
 import { eq, desc, sql, and } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, designs } from "../drizzle/schema";
+import { InsertUser, users, designs, cpdRequests, InsertCpdRequest } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -314,6 +314,40 @@ export async function getDesignByIdAdmin(designId: number) {
       role: userResult[0].role,
     } : null,
   };
+}
+
+// ─── CPD Request helpers ──────────────────────────────────────────────
+
+/** Create a new CPD request */
+export async function createCpdRequest(data: Omit<InsertCpdRequest, 'id' | 'status' | 'createdAt'>): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const result = await db.insert(cpdRequests).values({
+    ...data,
+    status: "new",
+  });
+
+  return (result as any)[0].insertId;
+}
+
+/** Get all CPD requests (admin only) */
+export async function getAllCpdRequests() {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db
+    .select()
+    .from(cpdRequests)
+    .orderBy(desc(cpdRequests.createdAt));
+}
+
+/** Update CPD request status (admin only) */
+export async function updateCpdRequestStatus(id: number, status: 'new' | 'contacted' | 'confirmed' | 'completed' | 'cancelled') {
+  const db = await getDb();
+  if (!db) return;
+
+  await db.update(cpdRequests).set({ status }).where(eq(cpdRequests.id, id));
 }
 
 /** Get admin dashboard stats */

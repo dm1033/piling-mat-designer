@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/sidebar";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { LayoutDashboard, Users, FileText, LogOut, PanelLeft, HardHat, ArrowLeft, Shield } from "lucide-react";
+import { LayoutDashboard, Users, FileText, LogOut, PanelLeft, HardHat, ArrowLeft, Shield, GraduationCap } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from "@/components/DashboardLayoutSkeleton";
@@ -32,6 +32,7 @@ const adminMenuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/" },
   { icon: Users, label: "Users", path: "/users" },
   { icon: FileText, label: "Designs", path: "/designs" },
+  { icon: GraduationCap, label: "CPD Requests", path: "/cpd-requests" },
 ];
 
 const SIDEBAR_WIDTH_KEY = "admin-sidebar-width";

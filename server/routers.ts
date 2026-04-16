@@ -2,7 +2,8 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, adminProcedure, router } from "./_core/trpc";
-import { createDesign, generateCertificateRef, getUserDesigns, getDesignById, countUserDesigns, getAllUsers, getAllDesigns, getDesignByIdAdmin, getAdminStats } from "./db";
+import { createDesign, generateCertificateRef, getUserDesigns, getDesignById, countUserDesigns, getAllUsers, getAllDesigns, getDesignByIdAdmin, getAdminStats, createCpdRequest, getAllCpdRequests, updateCpdRequestStatus } from "./db";
+import { notifyOwner } from "./_core/notification";
 import { PRODUCT, CERTIFICATE, formatPrice } from "./products";
 import Stripe from "stripe";
 import { z } from "zod";
@@ -146,6 +147,44 @@ export const appRouter = router({
     }),
   }),
 
+  // CPD presentation requests
+  cpd: router({
+    /** Submit a CPD request (public — no auth required) */
+    submit: publicProcedure
+      .input(z.object({
+        contactName: z.string().min(1, "Name is required"),
+        companyName: z.string().min(1, "Company name is required"),
+        email: z.string().email("Valid email is required"),
+        phone: z.string().optional(),
+        jobTitle: z.string().optional(),
+        preferredDate: z.string().optional(),
+        attendees: z.string().optional(),
+        format: z.enum(["online", "in-person", "either"]).default("either"),
+        additionalNotes: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const id = await createCpdRequest({
+          contactName: input.contactName,
+          companyName: input.companyName,
+          email: input.email,
+          phone: input.phone || null,
+          jobTitle: input.jobTitle || null,
+          preferredDate: input.preferredDate || null,
+          attendees: input.attendees || null,
+          format: input.format,
+          additionalNotes: input.additionalNotes || null,
+        });
+
+        // Notify admin of new CPD request
+        await notifyOwner({
+          title: `New CPD Request from ${input.companyName}`,
+          content: `${input.contactName} (${input.email}) from ${input.companyName} has requested a BRE470 CPD presentation.\n\nFormat: ${input.format}\nPreferred date: ${input.preferredDate || 'Flexible'}\nAttendees: ${input.attendees || 'Not specified'}\n\nNotes: ${input.additionalNotes || 'None'}`,
+        });
+
+        return { success: true, id };
+      }),
+  }),
+
   // Admin panel procedures (role === 'admin' only)
   admin: router({
     /** Dashboard stats: user count, design count, revenue */
@@ -166,6 +205,22 @@ export const appRouter = router({
     designs: adminProcedure.query(async () => {
       return getAllDesigns();
     }),
+
+    /** List all CPD requests */
+    cpdRequests: adminProcedure.query(async () => {
+      return getAllCpdRequests();
+    }),
+
+    /** Update CPD request status */
+    updateCpdStatus: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        status: z.enum(["new", "contacted", "confirmed", "completed", "cancelled"]),
+      }))
+      .mutation(async ({ input }) => {
+        await updateCpdRequestStatus(input.id, input.status);
+        return { success: true };
+      }),
 
     /** Get a specific design with full data (admin — no user restriction) */
     designDetail: adminProcedure

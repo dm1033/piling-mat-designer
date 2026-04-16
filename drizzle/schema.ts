@@ -49,3 +49,27 @@ export const designs = mysqlTable("designs", {
 
 export type Design = typeof designs.$inferSelect;
 export type InsertDesign = typeof designs.$inferInsert;
+
+/**
+ * CPD presentation requests — companies requesting a BRE470 CPD talk
+ */
+export const cpdRequests = mysqlTable("cpd_requests", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Requester details */
+  contactName: varchar("contactName", { length: 256 }).notNull(),
+  companyName: varchar("companyName", { length: 256 }).notNull(),
+  email: varchar("email", { length: 320 }).notNull(),
+  phone: varchar("phone", { length: 64 }),
+  jobTitle: varchar("jobTitle", { length: 256 }),
+  /** Presentation details */
+  preferredDate: varchar("preferredDate", { length: 128 }),
+  attendees: varchar("attendees", { length: 64 }),
+  format: mysqlEnum("format", ["online", "in-person", "either"]).default("either").notNull(),
+  additionalNotes: text("additionalNotes"),
+  /** Status tracking */
+  status: mysqlEnum("status", ["new", "contacted", "confirmed", "completed", "cancelled"]).default("new").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type CpdRequest = typeof cpdRequests.$inferSelect;
+export type InsertCpdRequest = typeof cpdRequests.$inferInsert;

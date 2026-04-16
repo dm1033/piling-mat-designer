@@ -29,6 +29,13 @@
       "when": 1775391594074,
       "tag": "0003_pale_salo",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1776358885357,
+      "tag": "0004_foamy_loa",
+      "breakpoints": true
     }
   ]
 }
