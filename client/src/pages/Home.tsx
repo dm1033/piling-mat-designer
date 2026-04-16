@@ -10,7 +10,8 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 import {
   Calculator, BookOpen, HardHat, ArrowRight, Shield, Zap, FileText,
-  CheckCircle2, Phone, Mail, Award, Clock, PoundSterling, FileCheck
+  CheckCircle2, Phone, Mail, Award, Clock, PoundSterling, FileCheck,
+  Share2, Linkedin, Copy, ExternalLink
 } from "lucide-react";
 
 const HERO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663349554749/hMJrHrZWZ2XC9JAvjXeKjs/hero-construction-7yCmYE7gTL3hM6e2YBcmpd.webp";
@@ -325,6 +326,66 @@ export default function Home() {
                 </div>
               </CardContent>
             </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Share / Referral Section */}
+      <section className="py-16 bg-primary/5 border-t border-primary/10">
+        <div className="container">
+          <div className="max-w-3xl mx-auto text-center">
+            <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+              <Share2 className="w-7 h-7 text-primary" />
+            </div>
+            <h2 className="font-heading text-3xl font-bold mb-3">Know Someone Who Needs This?</h2>
+            <p className="text-muted-foreground text-lg mb-8 max-w-xl mx-auto">
+              Share the BRE470 Piling Mat Designer with colleagues, contractors, and TWCs. Every piling project needs a compliant working platform design.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Button
+                size="lg"
+                className="h-12 px-6 gap-2"
+                onClick={() => {
+                  const url = "https://www.bre470pilingmatdesign.com";
+                  const text = "BRE470 Piling Mat Designer — Professional working platform design certificates for £299.99. Full BRE470 calculations and signed check certificate. Try free:";
+                  window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`, "_blank");
+                }}
+              >
+                <Linkedin className="w-5 h-5" />
+                Share on LinkedIn
+              </Button>
+              <Button
+                variant="outline"
+                size="lg"
+                className="h-12 px-6 gap-2"
+                onClick={() => {
+                  const subject = encodeURIComponent("BRE470 Piling Mat Designer — Professional Working Platform Designs");
+                  const body = encodeURIComponent(
+                    "Hi,\n\nI wanted to share this BRE470 working platform design tool with you. It produces fully compliant design certificates with signed check certificates for £299.99 per design — much faster and cheaper than commissioning a bespoke consultancy design.\n\nYou can try a free calculation here: https://www.bre470pilingmatdesign.com\n\nIt covers all major piling rigs (Liebherr, Bauer, Soilmec, etc.) and supports both cohesive and granular subgrades.\n\nBest regards"
+                  );
+                  window.open(`mailto:?subject=${subject}&body=${body}`);
+                }}
+              >
+                <Mail className="w-5 h-5" />
+                Share via Email
+              </Button>
+              <Button
+                variant="outline"
+                size="lg"
+                className="h-12 px-6 gap-2"
+                onClick={() => {
+                  navigator.clipboard.writeText("https://www.bre470pilingmatdesign.com");
+                  const btn = document.getElementById("copy-link-btn");
+                  if (btn) { btn.textContent = "Copied!"; setTimeout(() => { btn.textContent = "Copy Link"; }, 2000); }
+                }}
+              >
+                <Copy className="w-5 h-5" />
+                <span id="copy-link-btn">Copy Link</span>
+              </Button>
+            </div>
+            <p className="text-sm text-muted-foreground mt-6">
+              www.bre470pilingmatdesign.com
+            </p>
           </div>
         </div>
       </section>

@@ -162,3 +162,18 @@
 - [x] LinkedIn and Email share links on each article
 - [x] All 78 tests passing across 6 test files
 - [x] Save checkpoint and deliver
+
+## Marketing Outreach & Contact List
+- [x] Research UK piling contractors (FPS full + associate members)
+- [x] Research ground engineering companies
+- [x] Research temporary works design consultancies
+- [x] Research principal contractors with piling/ground engineering divisions
+- [x] Research rig hire companies and piling equipment suppliers
+- [x] Research geotechnical consultants and material suppliers
+- [x] Compile 98 contacts into structured Excel spreadsheet (8 sheets, 7 categories + summary)
+- [x] Draft 4 marketing email templates (primary, short, TWC, industry body)
+- [x] Create LinkedIn posting strategy with 2 post templates
+- [x] Include Mailchimp setup guide and GDPR compliance notes
+- [x] Add Share/Referral section to homepage (LinkedIn, Email, Copy Link)
+- [x] All 88 tests passing across 7 test files
+- [x] Save checkpoint and deliver
