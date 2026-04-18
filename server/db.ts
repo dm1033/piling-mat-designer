@@ -350,6 +350,35 @@ export async function updateCpdRequestStatus(id: number, status: 'new' | 'contac
   await db.update(cpdRequests).set({ status }).where(eq(cpdRequests.id, id));
 }
 
+/** Update CPD request with Stripe session ID */
+export async function updateCpdStripeSession(cpdId: number, stripeSessionId: string) {
+  const db = await getDb();
+  if (!db) return;
+
+  await db.update(cpdRequests).set({ stripeSessionId }).where(eq(cpdRequests.id, cpdId));
+}
+
+/** Mark a CPD request as paid via Stripe webhook */
+export async function markCpdPaid(stripeSessionId: string, paymentIntentId: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+
+  await db.update(cpdRequests).set({
+    paymentStatus: "completed",
+    stripePaymentIntentId: paymentIntentId,
+    status: "new", // keep status as new — admin still needs to action it
+  }).where(eq(cpdRequests.stripeSessionId, stripeSessionId));
+}
+
+/** Get a CPD request by ID */
+export async function getCpdRequestById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+
+  const result = await db.select().from(cpdRequests).where(eq(cpdRequests.id, id)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
 /** Get admin dashboard stats */
 export async function getAdminStats() {
   const db = await getDb();

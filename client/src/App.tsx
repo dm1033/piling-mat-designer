@@ -21,6 +21,7 @@ import Blog from "./pages/Blog";
 import BlogArticle from "./pages/BlogArticle";
 import CPD from "./pages/CPD";
 import AdminCpdRequests from "./pages/admin/AdminCpdRequests";
+import CpdSuccess from "./pages/CpdSuccess";
 
 function Router() {
   return (
@@ -37,6 +38,7 @@ function Router() {
       <Route path="/blog" component={Blog} />
       <Route path="/blog/:slug" component={BlogArticle} />
       <Route path="/cpd" component={CPD} />
+      <Route path="/cpd-success" component={CpdSuccess} />
 
       {/* Admin routes — wrapped in AdminLayout with role check */}
       <Route path="/admin" nest>

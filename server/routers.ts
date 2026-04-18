@@ -2,9 +2,9 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, adminProcedure, router } from "./_core/trpc";
-import { createDesign, generateCertificateRef, getUserDesigns, getDesignById, countUserDesigns, getAllUsers, getAllDesigns, getDesignByIdAdmin, getAdminStats, createCpdRequest, getAllCpdRequests, updateCpdRequestStatus } from "./db";
+import { createDesign, generateCertificateRef, getUserDesigns, getDesignById, countUserDesigns, getAllUsers, getAllDesigns, getDesignByIdAdmin, getAdminStats, createCpdRequest, getAllCpdRequests, updateCpdRequestStatus, updateCpdStripeSession, getCpdRequestById } from "./db";
 import { notifyOwner } from "./_core/notification";
-import { PRODUCT, CERTIFICATE, formatPrice } from "./products";
+import { PRODUCT, CPD_PRODUCT, CERTIFICATE, formatPrice } from "./products";
 import Stripe from "stripe";
 import { z } from "zod";
 
@@ -13,6 +13,9 @@ const getStripe = () => {
   if (!key) throw new Error("Stripe not configured");
   return new Stripe(key, { apiVersion: "2025-04-30.basil" as any });
 };
+
+/** Payment methods: card (inc. Google Pay / Apple Pay) + PayPal */
+const PAYMENT_METHODS: Stripe.Checkout.SessionCreateParams.PaymentMethodType[] = ["card", "paypal"];
 
 export const appRouter = router({
   system: systemRouter,
@@ -64,10 +67,10 @@ export const appRouter = router({
           calculationResult: input.calculationResult,
         });
 
-        // Create Stripe checkout session
+        // Create Stripe checkout session — card + PayPal
         const session = await stripe.checkout.sessions.create({
           mode: "payment",
-          payment_method_types: ["card"],
+          payment_method_types: PAYMENT_METHODS,
           line_items: [
             {
               price_data: {
@@ -89,6 +92,7 @@ export const appRouter = router({
             project_name: input.projectName,
             customer_email: ctx.user.email || "",
             customer_name: ctx.user.name || "",
+            purchase_type: "design",
           },
           customer_email: ctx.user.email || undefined,
           allow_promotion_codes: true,
@@ -147,9 +151,17 @@ export const appRouter = router({
     }),
   }),
 
-  // CPD presentation requests
+  // CPD presentation requests (now paid at £19.99)
   cpd: router({
-    /** Submit a CPD request (public — no auth required) */
+    /** Get CPD product info — public */
+    product: publicProcedure.query(() => ({
+      name: CPD_PRODUCT.name,
+      description: CPD_PRODUCT.description,
+      priceGBP: CPD_PRODUCT.priceGBP,
+      priceFormatted: formatPrice(CPD_PRODUCT.priceGBP),
+    })),
+
+    /** Submit a CPD request and create Stripe checkout session */
     submit: publicProcedure
       .input(z.object({
         contactName: z.string().min(1, "Name is required"),
@@ -161,8 +173,10 @@ export const appRouter = router({
         attendees: z.string().optional(),
         format: z.enum(["online", "in-person", "either"]).default("either"),
         additionalNotes: z.string().optional(),
+        origin: z.string().optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
+        // Create the CPD request record (pending payment)
         const id = await createCpdRequest({
           contactName: input.contactName,
           companyName: input.companyName,
@@ -175,13 +189,65 @@ export const appRouter = router({
           additionalNotes: input.additionalNotes || null,
         });
 
-        // Notify admin of new CPD request
-        await notifyOwner({
-          title: `New CPD Request from ${input.companyName}`,
-          content: `${input.contactName} (${input.email}) from ${input.companyName} has requested a BRE470 CPD presentation.\n\nFormat: ${input.format}\nPreferred date: ${input.preferredDate || 'Flexible'}\nAttendees: ${input.attendees || 'Not specified'}\n\nNotes: ${input.additionalNotes || 'None'}`,
+        // Create Stripe checkout session for CPD — card + PayPal
+        const stripe = getStripe();
+        const origin = input.origin || ctx.req.headers.origin || ctx.req.headers.referer || "http://localhost:3000";
+
+        const session = await stripe.checkout.sessions.create({
+          mode: "payment",
+          payment_method_types: PAYMENT_METHODS,
+          line_items: [
+            {
+              price_data: {
+                currency: CPD_PRODUCT.currency,
+                product_data: {
+                  name: CPD_PRODUCT.name,
+                  description: `CPD for ${input.companyName} — ${input.contactName}`,
+                },
+                unit_amount: CPD_PRODUCT.priceGBP,
+              },
+              quantity: 1,
+            },
+          ],
+          customer_email: input.email,
+          metadata: {
+            cpd_request_id: id.toString(),
+            contact_name: input.contactName,
+            company_name: input.companyName,
+            customer_email: input.email,
+            purchase_type: "cpd",
+          },
+          allow_promotion_codes: true,
+          success_url: `${origin}/cpd-success?session_id={CHECKOUT_SESSION_ID}&cpd_id=${id}`,
+          cancel_url: `${origin}/cpd?cancelled=true`,
         });
 
-        return { success: true, id };
+        // Update CPD request with session ID
+        await updateCpdStripeSession(id, session.id);
+
+        return {
+          checkoutUrl: session.url,
+          cpdRequestId: id,
+        };
+      }),
+
+    /** Get a CPD request by ID (for success page) */
+    get: publicProcedure
+      .input(z.object({ cpdId: z.number() }))
+      .query(async ({ input }) => {
+        const cpd = await getCpdRequestById(input.cpdId);
+        if (!cpd) throw new Error("CPD request not found");
+        return {
+          id: cpd.id,
+          contactName: cpd.contactName,
+          companyName: cpd.companyName,
+          email: cpd.email,
+          format: cpd.format,
+          preferredDate: cpd.preferredDate,
+          attendees: cpd.attendees,
+          paymentStatus: cpd.paymentStatus,
+          createdAt: cpd.createdAt,
+        };
       }),
   }),
 

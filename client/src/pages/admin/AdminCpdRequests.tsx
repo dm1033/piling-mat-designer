@@ -9,7 +9,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { GraduationCap, Mail, Phone, Building2, User, Calendar, Users, Loader2 } from "lucide-react";
+import { GraduationCap, Mail, Phone, Building2, User, Calendar, Users, Loader2, CreditCard, CheckCircle2 } from "lucide-react";
+
+const PAYMENT_COLORS: Record<string, string> = {
+  pending: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
+  completed: "bg-green-500/20 text-green-400 border-green-500/30",
+  failed: "bg-red-500/20 text-red-400 border-red-500/30",
+};
 
 const STATUS_COLORS: Record<string, string> = {
   new: "bg-blue-500/20 text-blue-400 border-blue-500/30",
@@ -95,9 +101,17 @@ export default function AdminCpdRequests() {
                       {req.jobTitle && <span>({req.jobTitle})</span>}
                     </div>
                   </div>
-                  <Badge className={STATUS_COLORS[req.status] || ""} variant="outline">
-                    {req.status}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    {req.paymentStatus && (
+                      <Badge className={PAYMENT_COLORS[req.paymentStatus] || ""} variant="outline">
+                        <CreditCard className="w-3 h-3 mr-1" />
+                        {req.paymentStatus === "completed" ? "Paid £19.99" : req.paymentStatus}
+                      </Badge>
+                    )}
+                    <Badge className={STATUS_COLORS[req.status] || ""} variant="outline">
+                      {req.status}
+                    </Badge>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>

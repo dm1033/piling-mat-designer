@@ -66,6 +66,12 @@ export const cpdRequests = mysqlTable("cpd_requests", {
   attendees: varchar("attendees", { length: 64 }),
   format: mysqlEnum("format", ["online", "in-person", "either"]).default("either").notNull(),
   additionalNotes: text("additionalNotes"),
+  /** Payment tracking */
+  amountPence: int("amountPence").default(1999).notNull(),
+  currency: varchar("currency", { length: 8 }).default("gbp").notNull(),
+  paymentStatus: varchar("paymentStatus", { length: 32 }).default("pending").notNull(),
+  stripeSessionId: varchar("stripeSessionId", { length: 128 }),
+  stripePaymentIntentId: varchar("stripePaymentIntentId", { length: 128 }),
   /** Status tracking */
   status: mysqlEnum("status", ["new", "contacted", "confirmed", "completed", "cancelled"]).default("new").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

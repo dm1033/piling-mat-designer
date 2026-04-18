@@ -3,6 +3,14 @@
  * Per-design payment model: £299.99 per design certificate
  */
 
+export const CPD_PRODUCT = {
+  id: "bre470_cpd",
+  name: "BRE470 CPD Presentation — 1 Hour Structured CPD",
+  description: "1-hour CPD presentation on BRE470 working platform design. Covers methodology, compliance under CDM 2015 & BS 5975:2024, common failure modes, and live design tool demonstration. Certificate of attendance included.",
+  priceGBP: 1999, // £19.99 in pence
+  currency: "gbp" as const,
+};
+
 export const PRODUCT = {
   id: "bre470_design",
   name: "BRE470 Working Platform Design & Certificate",

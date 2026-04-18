@@ -1,9 +1,10 @@
 /**
- * CPD Presentation Request Page
- * "BRE470 Compliance Made Simple" — Free CPD talk for piling contractors & TWCs
+ * CPD Presentation Request Page — £19.99 per booking
+ * "BRE470 Compliance Made Simple" — Paid CPD talk for piling contractors & TWCs
+ * Payment: Card + PayPal + Google Pay + Apple Pay via Stripe Checkout
  */
 import { useState } from "react";
-import { Link } from "wouter";
+import { Link, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,11 +23,12 @@ import {
   Target,
   CheckCircle2,
   Award,
-  Send,
+  CreditCard,
   ArrowLeft,
   Shield,
   Lightbulb,
   FileText,
+  Banknote,
 } from "lucide-react";
 
 const LEARNING_OUTCOMES = [
@@ -66,13 +68,21 @@ const TALK_DETAILS = [
   { label: "Duration", value: "45 minutes + 15 min Q&A", icon: Clock },
   { label: "Audience", value: "TWCs, Site Agents, Piling Managers, Design Engineers", icon: Users },
   { label: "Format", value: "Online (Teams/Zoom) or In-Person", icon: Target },
-  { label: "Cost", value: "Free of charge", icon: CheckCircle2 },
+  { label: "Price", value: "£19.99 per person", icon: Banknote },
   { label: "CPD Hours", value: "1 hour structured CPD", icon: GraduationCap },
   { label: "Presenter", value: "David Miller, Temporary Works Designer", icon: HardHat },
 ];
 
+const PAYMENT_METHODS = [
+  { name: "Credit & Debit Cards", icon: CreditCard },
+  { name: "PayPal", icon: Banknote },
+  { name: "Google Pay", icon: CreditCard },
+  { name: "Apple Pay", icon: CreditCard },
+];
+
 export default function CPD() {
-  const [submitted, setSubmitted] = useState(false);
+  const searchString = useSearch();
+  const cancelled = new URLSearchParams(searchString).get("cancelled");
   const [form, setForm] = useState({
     contactName: "",
     companyName: "",
@@ -86,9 +96,11 @@ export default function CPD() {
   });
 
   const submitMutation = trpc.cpd.submit.useMutation({
-    onSuccess: () => {
-      setSubmitted(true);
-      toast.success("CPD request submitted — we'll be in touch shortly.");
+    onSuccess: (data) => {
+      if (data.checkoutUrl) {
+        toast.success("Redirecting to secure payment...");
+        window.open(data.checkoutUrl, "_blank");
+      }
     },
     onError: (err) => {
       toast.error(err.message || "Failed to submit request. Please try again.");
@@ -101,7 +113,10 @@ export default function CPD() {
       toast.error("Please fill in all required fields.");
       return;
     }
-    submitMutation.mutate(form);
+    submitMutation.mutate({
+      ...form,
+      origin: window.location.origin,
+    });
   };
 
   const updateField = (field: string, value: string) => {
@@ -136,25 +151,38 @@ export default function CPD() {
         </div>
       </header>
 
+      {/* Cancelled Banner */}
+      {cancelled && (
+        <div className="bg-yellow-500/10 border-b border-yellow-500/30 py-3">
+          <div className="container text-center text-sm text-yellow-700 dark:text-yellow-400">
+            Payment was cancelled. Your request has been saved — you can complete payment below.
+          </div>
+        </div>
+      )}
+
       {/* Hero */}
       <section className="relative bg-gradient-to-br from-primary/10 via-background to-accent/10 py-16 md:py-24">
         <div className="container max-w-4xl text-center">
           <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-1.5 rounded-full text-sm font-medium mb-6">
             <GraduationCap className="w-4 h-4" />
-            Free CPD Presentation
+            1 Hour Structured CPD
           </div>
           <h1 className="text-3xl md:text-5xl font-heading font-bold tracking-tight mb-4">
             BRE470 Compliance<br />Made Simple
           </h1>
-          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
+          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-4">
             A practical, 1-hour CPD talk on working platform design for piling contractors,
             temporary works coordinators, and site engineers. Delivered by David Miller,
             Temporary Works Designer with 25+ years of experience.
           </p>
+          <div className="flex items-center justify-center gap-2 mb-8">
+            <span className="text-3xl font-heading font-bold text-primary">£19.99</span>
+            <span className="text-muted-foreground">per person</span>
+          </div>
           <div className="flex flex-wrap justify-center gap-3">
             <a href="#request-form">
               <Button size="lg" className="font-semibold">
-                <Send className="w-4 h-4 mr-2" /> Request a Presentation
+                <CreditCard className="w-4 h-4 mr-2" /> Book & Pay Now
               </Button>
             </a>
             <Link href="/calculator">
@@ -162,6 +190,14 @@ export default function CPD() {
                 <Calculator className="w-4 h-4 mr-2" /> Try the Design Tool
               </Button>
             </Link>
+          </div>
+          {/* Payment method badges */}
+          <div className="flex items-center justify-center gap-4 mt-6 text-xs text-muted-foreground">
+            {PAYMENT_METHODS.map((pm) => (
+              <span key={pm.name} className="flex items-center gap-1">
+                <pm.icon className="w-3.5 h-3.5" /> {pm.name}
+              </span>
+            ))}
           </div>
         </div>
       </section>
@@ -257,177 +293,172 @@ export default function CPD() {
       {/* Request Form */}
       <section id="request-form" className="py-16">
         <div className="container max-w-2xl">
-          <h2 className="text-2xl md:text-3xl font-heading font-bold text-center mb-4">
-            Request a CPD Presentation
+          <h2 className="text-2xl md:text-3xl font-heading font-bold text-center mb-2">
+            Book Your CPD Presentation
           </h2>
-          <p className="text-center text-muted-foreground mb-8">
-            Fill in the form below and we'll get back to you within 48 hours to arrange your presentation.
+          <p className="text-center text-muted-foreground mb-2">
+            Complete the form below and proceed to secure payment. Once paid, David Miller will
+            contact you within 48 hours to schedule your presentation.
           </p>
+          <div className="flex items-center justify-center gap-2 mb-8">
+            <span className="text-2xl font-heading font-bold text-primary">£19.99</span>
+            <span className="text-sm text-muted-foreground">per person — pay by card, PayPal, Google Pay, or Apple Pay</span>
+          </div>
 
-          {submitted ? (
-            <Card className="text-center py-12">
-              <CardContent>
-                <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" />
-                <h3 className="text-xl font-heading font-bold mb-2">Request Submitted</h3>
-                <p className="text-muted-foreground mb-6">
-                  Thank you for your interest. David Miller will be in touch within 48 hours
-                  to arrange your CPD presentation.
-                </p>
-                <div className="flex justify-center gap-3">
-                  <Link href="/">
-                    <Button variant="outline">
-                      <ArrowLeft className="w-4 h-4 mr-2" /> Back to Home
-                    </Button>
-                  </Link>
-                  <Link href="/calculator">
-                    <Button>
-                      <Calculator className="w-4 h-4 mr-2" /> Try the Design Tool
-                    </Button>
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card>
-              <CardContent className="pt-6">
-                <form onSubmit={handleSubmit} className="space-y-5">
-                  {/* Contact Details */}
-                  <div className="space-y-4">
-                    <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">
-                      Contact Details
-                    </h3>
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="contactName">Your Name *</Label>
-                        <Input
-                          id="contactName"
-                          placeholder="e.g. John Smith"
-                          value={form.contactName}
-                          onChange={(e) => updateField("contactName", e.target.value)}
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="companyName">Company Name *</Label>
-                        <Input
-                          id="companyName"
-                          placeholder="e.g. Keller Group"
-                          value={form.companyName}
-                          onChange={(e) => updateField("companyName", e.target.value)}
-                          required
-                        />
-                      </div>
-                    </div>
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="email">Email Address *</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          placeholder="john@company.com"
-                          value={form.email}
-                          onChange={(e) => updateField("email", e.target.value)}
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="phone">Phone Number</Label>
-                        <Input
-                          id="phone"
-                          type="tel"
-                          placeholder="07xxx xxxxxx"
-                          value={form.phone}
-                          onChange={(e) => updateField("phone", e.target.value)}
-                        />
-                      </div>
-                    </div>
+          <Card>
+            <CardContent className="pt-6">
+              <form onSubmit={handleSubmit} className="space-y-5">
+                {/* Contact Details */}
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">
+                    Contact Details
+                  </h3>
+                  <div className="grid md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="jobTitle">Job Title</Label>
+                      <Label htmlFor="contactName">Your Name *</Label>
                       <Input
-                        id="jobTitle"
-                        placeholder="e.g. Temporary Works Coordinator"
-                        value={form.jobTitle}
-                        onChange={(e) => updateField("jobTitle", e.target.value)}
+                        id="contactName"
+                        placeholder="e.g. John Smith"
+                        value={form.contactName}
+                        onChange={(e) => updateField("contactName", e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="companyName">Company Name *</Label>
+                      <Input
+                        id="companyName"
+                        placeholder="e.g. Keller Group"
+                        value={form.companyName}
+                        onChange={(e) => updateField("companyName", e.target.value)}
+                        required
                       />
                     </div>
                   </div>
-
-                  {/* Presentation Preferences */}
-                  <div className="space-y-4 pt-2">
-                    <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">
-                      Presentation Preferences
-                    </h3>
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="preferredDate">Preferred Date / Month</Label>
-                        <Input
-                          id="preferredDate"
-                          placeholder="e.g. June 2026, or flexible"
-                          value={form.preferredDate}
-                          onChange={(e) => updateField("preferredDate", e.target.value)}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="attendees">Number of Attendees</Label>
-                        <Input
-                          id="attendees"
-                          placeholder="e.g. 10-15"
-                          value={form.attendees}
-                          onChange={(e) => updateField("attendees", e.target.value)}
-                        />
-                      </div>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email Address *</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="john@company.com"
+                        value={form.email}
+                        onChange={(e) => updateField("email", e.target.value)}
+                        required
+                      />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="format">Delivery Format</Label>
-                      <Select
-                        value={form.format}
-                        onValueChange={(val) => updateField("format", val)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select format" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="online">Online (Teams / Zoom)</SelectItem>
-                          <SelectItem value="in-person">In-Person (at your office/site)</SelectItem>
-                          <SelectItem value="either">Either — No Preference</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="notes">Additional Notes</Label>
-                      <Textarea
-                        id="notes"
-                        placeholder="Any specific topics you'd like covered, or questions for the presenter..."
-                        rows={3}
-                        value={form.additionalNotes}
-                        onChange={(e) => updateField("additionalNotes", e.target.value)}
+                      <Label htmlFor="phone">Phone Number</Label>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        placeholder="07xxx xxxxxx"
+                        value={form.phone}
+                        onChange={(e) => updateField("phone", e.target.value)}
                       />
                     </div>
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="jobTitle">Job Title</Label>
+                    <Input
+                      id="jobTitle"
+                      placeholder="e.g. Temporary Works Coordinator"
+                      value={form.jobTitle}
+                      onChange={(e) => updateField("jobTitle", e.target.value)}
+                    />
+                  </div>
+                </div>
 
-                  <Button
-                    type="submit"
-                    size="lg"
-                    className="w-full font-semibold"
-                    disabled={submitMutation.isPending}
-                  >
-                    {submitMutation.isPending ? (
-                      "Submitting..."
-                    ) : (
-                      <>
-                        <Send className="w-4 h-4 mr-2" /> Submit CPD Request
-                      </>
-                    )}
-                  </Button>
+                {/* Presentation Preferences */}
+                <div className="space-y-4 pt-2">
+                  <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">
+                    Presentation Preferences
+                  </h3>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="preferredDate">Preferred Date / Month</Label>
+                      <Input
+                        id="preferredDate"
+                        placeholder="e.g. June 2026, or flexible"
+                        value={form.preferredDate}
+                        onChange={(e) => updateField("preferredDate", e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="attendees">Number of Attendees</Label>
+                      <Input
+                        id="attendees"
+                        placeholder="e.g. 10-15"
+                        value={form.attendees}
+                        onChange={(e) => updateField("attendees", e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="format">Delivery Format</Label>
+                    <Select
+                      value={form.format}
+                      onValueChange={(val) => updateField("format", val)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select format" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="online">Online (Teams / Zoom)</SelectItem>
+                        <SelectItem value="in-person">In-Person (at your office/site)</SelectItem>
+                        <SelectItem value="either">Either — No Preference</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="notes">Additional Notes</Label>
+                    <Textarea
+                      id="notes"
+                      placeholder="Any specific topics you'd like covered, or questions for the presenter..."
+                      rows={3}
+                      value={form.additionalNotes}
+                      onChange={(e) => updateField("additionalNotes", e.target.value)}
+                    />
+                  </div>
+                </div>
 
-                  <p className="text-xs text-muted-foreground text-center">
-                    By submitting this form, you agree to be contacted by Temporary Works Consulting Ltd
-                    regarding your CPD presentation request. We will not share your details with third parties.
-                  </p>
-                </form>
-              </CardContent>
-            </Card>
-          )}
+                {/* Payment info box */}
+                <div className="bg-muted/50 rounded-lg p-4 border border-border">
+                  <div className="flex items-start gap-3">
+                    <Shield className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium mb-1">Secure Payment via Stripe</p>
+                      <p className="text-xs text-muted-foreground">
+                        After submitting, you'll be redirected to Stripe's secure checkout page where you can pay
+                        by credit/debit card, PayPal, Google Pay, or Apple Pay. Your payment details are never
+                        stored on our servers.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <Button
+                  type="submit"
+                  size="lg"
+                  className="w-full font-semibold"
+                  disabled={submitMutation.isPending}
+                >
+                  {submitMutation.isPending ? (
+                    "Processing..."
+                  ) : (
+                    <>
+                      <CreditCard className="w-4 h-4 mr-2" /> Book & Pay £19.99
+                    </>
+                  )}
+                </Button>
+
+                <p className="text-xs text-muted-foreground text-center">
+                  By submitting this form, you agree to be contacted by Temporary Works Consulting Ltd
+                  regarding your CPD presentation. Payment is processed securely by Stripe.
+                </p>
+              </form>
+            </CardContent>
+          </Card>
         </div>
       </section>
 

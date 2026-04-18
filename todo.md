@@ -194,3 +194,15 @@
   - [x] Include problem statement, solution, benefits, call to action
 - [x] Add routes, navigation, run tests (88 tests passing, 0 TS errors)
 - [x] Save checkpoint and deliver
+
+## CPD Payment (£19.99) & PayPal Integration
+- [x] Add CPD_PRODUCT constant (£19.99, 1999 pence) to server/products.ts
+- [x] Add cpd.submit procedure — Stripe Checkout for CPD at £19.99 (merged submit + checkout)
+- [x] Enable PayPal payment method on CPD Stripe Checkout session
+- [x] Enable PayPal payment method on Design Certificate Stripe Checkout session
+- [x] Update CPD page: form submits → stores CPD request → redirects to Stripe Checkout
+- [x] Add dedicated CpdSuccess page (/cpd-success) with booking confirmation
+- [x] Update webhook to handle CPD checkout.session.completed (mark CPD request as paid)
+- [x] Add paymentStatus, stripeSessionId, paymentIntentId columns to cpd_requests table
+- [x] Update admin CPD Requests page to show payment status badge
+- [x] Run tests (88 passing, 0 TS errors), save checkpoint, deliver

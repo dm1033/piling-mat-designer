@@ -1,11 +1,12 @@
 /**
- * Stripe Webhook Handler — Per-design payment model
- * Handles checkout.session.completed for one-off £299.99 design purchases
+ * Stripe Webhook Handler — Handles both design (£299.99) and CPD (£19.99) purchases
+ * Payment methods: Card (inc. Google Pay / Apple Pay) + PayPal
  */
 import type { Express } from "express";
 import express from "express";
 import Stripe from "stripe";
-import { markDesignPaid, updateUserStripeCustomerId } from "./db";
+import { markDesignPaid, updateUserStripeCustomerId, markCpdPaid } from "./db";
+import { notifyOwner } from "./_core/notification";
 
 export function registerStripeWebhook(app: Express) {
   const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
@@ -48,24 +49,41 @@ export function registerStripeWebhook(app: Express) {
         switch (event.type) {
           case "checkout.session.completed": {
             const session = event.data.object as Stripe.Checkout.Session;
+            const purchaseType = session.metadata?.purchase_type;
             const paymentIntentId = typeof session.payment_intent === "string"
               ? session.payment_intent
               : (session.payment_intent as any)?.id || `session_${session.id}`;
 
-            // Mark the design as paid and issue the certificate
-            await markDesignPaid(session.id, paymentIntentId);
+            if (purchaseType === "cpd") {
+              // ─── CPD Purchase (£19.99) ───
+              await markCpdPaid(session.id, paymentIntentId);
 
-            // Update user's Stripe customer ID if available
-            const userId = session.metadata?.user_id;
-            const customerId = typeof session.customer === "string"
-              ? session.customer
-              : (session.customer as any)?.id;
+              const contactName = session.metadata?.contact_name || "Unknown";
+              const companyName = session.metadata?.company_name || "Unknown";
+              const email = session.metadata?.customer_email || "Unknown";
 
-            if (userId && customerId) {
-              await updateUserStripeCustomerId(parseInt(userId, 10), customerId);
+              await notifyOwner({
+                title: `CPD Payment Received — ${companyName}`,
+                content: `${contactName} (${email}) from ${companyName} has paid £19.99 for a BRE470 CPD presentation.\n\nPayment method: ${session.payment_method_types?.join(", ") || "unknown"}\nSession: ${session.id}\n\nPlease review and schedule the presentation in the admin panel.`,
+              });
+
+              console.log(`[Stripe Webhook] CPD payment completed for session ${session.id} — ${companyName}`);
+            } else {
+              // ─── Design Purchase (£299.99) — default ───
+              await markDesignPaid(session.id, paymentIntentId);
+
+              // Update user's Stripe customer ID if available
+              const userId = session.metadata?.user_id;
+              const customerId = typeof session.customer === "string"
+                ? session.customer
+                : (session.customer as any)?.id;
+
+              if (userId && customerId) {
+                await updateUserStripeCustomerId(parseInt(userId, 10), customerId);
+              }
+
+              console.log(`[Stripe Webhook] Design certificate issued for session ${session.id}`);
             }
-
-            console.log(`[Stripe Webhook] Design certificate issued for session ${session.id}`);
             break;
           }
 
