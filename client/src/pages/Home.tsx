@@ -11,7 +11,7 @@ import { getLoginUrl } from "@/const";
 import {
   Calculator, BookOpen, HardHat, ArrowRight, Shield, Zap, FileText,
   CheckCircle2, Phone, Mail, Award, Clock, PoundSterling, FileCheck,
-  Share2, Linkedin, Copy, ExternalLink, GraduationCap
+  Share2, Linkedin, Copy, ExternalLink, GraduationCap, Building2
 } from "lucide-react";
 
 const HERO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663349554749/hMJrHrZWZ2XC9JAvjXeKjs/hero-construction-7yCmYE7gTL3hM6e2YBcmpd.webp";
@@ -40,6 +40,11 @@ export default function Home() {
             <Link href="/cpd">
               <Button variant="ghost" size="sm" className="text-sm">
                 <GraduationCap className="w-4 h-4 mr-1" /> CPD
+              </Button>
+            </Link>
+            <Link href="/for-contractors">
+              <Button variant="ghost" size="sm" className="text-sm">
+                <Building2 className="w-4 h-4 mr-1" /> For Contractors
               </Button>
             </Link>
             {isAuthenticated && (
@@ -424,7 +429,8 @@ export default function Home() {
                 <li><Link href="/calculator" className="hover:text-primary transition-colors">Design Tool</Link></li>
                 <li><Link href="/blog" className="hover:text-primary transition-colors">Knowledge Base</Link></li>
                 <li><Link href="/reference" className="hover:text-primary transition-colors">BRE470 Reference (Login Required)</Link></li>
-                <li><Link href="/cpd" className="hover:text-primary transition-colors">Free CPD Presentation</Link></li>
+                <li><Link href="/cpd" className="hover:text-primary transition-colors">CPD Presentation</Link></li>
+                <li><Link href="/for-contractors" className="hover:text-primary transition-colors">For Piling Contractors</Link></li>
               </ul>
             </div>
             <div>

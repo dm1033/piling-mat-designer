@@ -206,3 +206,19 @@
 - [x] Add paymentStatus, stripeSessionId, paymentIntentId columns to cpd_requests table
 - [x] Update admin CPD Requests page to show payment status badge
 - [x] Run tests (88 passing, 0 TS errors), save checkpoint, deliver
+
+## For Piling Contractors Page (Permanent Marketing Landing Page)
+- [x] Build /for-contractors page based on outreach email content
+  - [x] Hero section: pain point (2-4 week wait, £2,000+ fees) → solution (£299.99, same day)
+  - [x] How It Works section (3-step visual flow)
+  - [x] Key benefits section (Contracts Team, Site Agents, TWC, Business)
+  - [x] Target audience section (6 categories of piling/ground improvement companies)
+  - [x] CPD presentation upsell (£19.99) with booking CTA
+  - [x] Trusted by / built for section listing 15 major UK piling contractors
+  - [x] CTA sections (Start Your Design, Try Free Demo, Book CPD, Contact David)
+  - [x] About David Miller section with email/phone
+  - [x] JSON-LD structured data and SEO meta tags
+- [x] Add /for-contractors route to App.tsx
+- [x] Add navigation link (header + footer) on Home.tsx
+- [x] Add /for-contractors to sitemap.xml (11 URLs total)
+- [x] Run tests (88 passing, 0 TS errors), save checkpoint, deploy
