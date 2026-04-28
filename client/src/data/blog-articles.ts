@@ -408,6 +408,93 @@ The key message is that platform design should not be an afterthought — it sho
       }
     ]
   }
+,
+  {
+    slug: "digitising-bre470-platform-design",
+    title: "Working Platform Design in the Digital Age: How BRE470 Compliance is Being Transformed",
+    metaTitle: "Digitising BRE470 Working Platform Design for the UK Piling Industry | BRE470 Piling Mat Designer",
+    metaDescription: "How digital tools are transforming BRE470 working platform design — from weeks of consultancy to instant, signed design certificates for UK piling contractors.",
+    excerpt: "Every piling contractor knows the scenario: the rig is booked, the programme is tight, and the platform design is still in someone's inbox. This article examines how digital tools are closing that gap.",
+    author: "David Miller",
+    date: "2026-04-20",
+    readTime: "12 min read",
+    tags: ["BRE470", "Digital Design", "Industry", "CDM 2015", "BS 5975"],
+    heroImage: "https://d2xsxph8kpxj0f.cloudfront.net/310519663349554749/hMJrHrZWZ2XC9JAvjXeKjs/hero-construction-7yCmYE7gTL3hM6e2YBcmpd.webp",
+    sections: [
+      {
+        heading: "The Problem We All Know",
+        content: `Every piling contractor in the UK has experienced it. A project is mobilising, the rig is booked, the programme is tight — and the working platform design is still sitting in someone's inbox. The traditional route is well-worn: commission a geotechnical consultant, wait for a ground investigation report, brief a temporary works designer, wait for calculations, get them checked to Category 2 or 3, issue the design brief, and then — finally — build the platform. That process routinely takes three to six weeks. On a fast-track project, it can hold up the entire piling programme.
+
+The consequences are predictable. Platforms get built without formal design. Site teams rely on experience and \"what we did last time.\" A 600mm layer of Type 1 gets placed because it has always been 600mm, regardless of whether the rig weighs 40 tonnes or 120 tonnes, and regardless of whether the subgrade is stiff London Clay or soft alluvial silt. The result is either an over-engineered platform that wastes material and programme, or — far worse — an under-designed platform that fails under load.
+
+Platform failure is not a theoretical risk. The Federation of Piling Specialists (FPS) and the Temporary Works Forum (TWf) have documented numerous incidents where tracked plant has become bogged, tilted, or overturned due to inadequate working platforms. These incidents cause programme delays measured in weeks, plant damage measured in tens of thousands of pounds, and — in the worst cases — serious injury or death.`
+      },
+      {
+        heading: "What BRE470 Actually Requires",
+        content: `BRE470 (Working Platforms for Tracked Plant: Good Practice Guide to the Design, Installation, Maintenance and Repair of Ground-Supported Working Platforms) was published by the Building Research Establishment to provide a rational, engineering-based methodology for platform design. Its Appendix A sets out the calculation procedure that has become the industry standard.
+
+The methodology is straightforward in principle. For **cohesive subgrades**, the required platform thickness is determined by comparing the applied bearing pressure from the plant's tracks against the undrained shear strength of the subgrade, using Meyerhof's bearing capacity equations with appropriate partial factors. For **granular subgrades**, the approach uses the load spread method through the platform fill, checking that the applied pressure at the base of the platform does not exceed the allowable bearing capacity of the underlying soil.
+
+The key inputs are: plant gross weight and track dimensions (from manufacturer's data or EN 996), subgrade undrained shear strength (cu) or bearing capacity (from ground investigation or conservative assumption), platform fill properties (material specification, typically CBR > 10%), load spread angle (BRE470 Table A.1, typically 53° for granular fill), and partial factors (BRE470 Table A.2, 1.5 on bearing capacity, 1.0 on loads).
+
+The calculation itself is not complex — a competent engineer can complete it in 30 minutes. The delay is not in the engineering; it is in the procurement chain, the communication loop, and the checking process.`
+      },
+      {
+        heading: "The Digital Solution",
+        content: `Temporary Works Consulting Ltd has developed the **BRE470 Piling Mat Designer** — a web-based tool that allows piling contractors, temporary works coordinators, and site engineers to obtain a fully compliant BRE470 working platform design in minutes rather than weeks.
+
+The tool implements the full Appendix A calculation methodology for both cohesive and granular subgrades, with optional geosynthetic reinforcement. It includes a database of 23 piling rigs from Liebherr, Bauer, and Soilmec, with EN 996 track dimensions and loading values pre-loaded. Users input their site-specific soil parameters, select their rig, and the tool produces:
+
+**Full interpretive design calculations** — step-by-step, auditable, showing every input, assumption, partial factor, and intermediate result.
+
+**A professional design certificate** — a five-section document including project details, design parameters, calculation summary, recommendations, and a signed check certificate by a named Temporary Works Designer.
+
+**A cross-section diagram** — showing the platform layers, fill thickness, and subgrade interface.
+
+Each design is priced at **£299.99** — a fraction of the cost of a traditional consultancy commission, and delivered instantly rather than in weeks.`
+      },
+      {
+        heading: "Compliance Under CDM 2015 and BS 5975:2024",
+        content: `The Construction (Design and Management) Regulations 2015 place clear duties on all parties. The Principal Contractor must ensure that working platforms are designed, installed, and maintained to support the plant that will operate on them. The Temporary Works Coordinator (TWC) must ensure that a design brief is issued, a design is produced, and the design is checked before the platform is built.
+
+BS 5975:2024 (Code of Practice for Temporary Works Procedures and the Permissible Stress Design of Falsework) reinforces this framework. It requires that temporary works — including working platforms — follow a structured process: design brief, design, design check (Category 2 or 3 depending on risk), permit to load, and inspection regime.
+
+The BRE470 Piling Mat Designer fits directly into this framework. The output is a formal design document that can be issued as the temporary works design. The TWC can review the design certificate, confirm that the inputs match the site conditions, and issue the permit to load. The design is transparent, auditable, and traceable — exactly what a CDM-compliant process requires.
+
+Importantly, the tool does not replace engineering judgement. It requires the user to input site-specific soil parameters, which must come from a ground investigation or a conservative assumption agreed with the project team. The tool performs the calculation; the engineer owns the inputs and the decision to proceed.`
+      },
+      {
+        heading: "The Commercial Case",
+        content: `The commercial argument is compelling. A traditional working platform design commission typically costs between £800 and £2,500, depending on the consultant, the complexity, and the checking category. Turnaround is typically two to four weeks, sometimes longer during busy periods.
+
+The BRE470 Piling Mat Designer offers the same professional output at £299.99 per design, delivered instantly, available 24/7 from any device. The output is a standardised 5-section certificate with full step-by-step calculations and a database of 23 rigs pre-loaded with EN 996 data.
+
+For a piling contractor running multiple rigs across multiple sites, the savings are substantial — not just in design fees, but in programme time. A platform design that arrives three weeks faster means the rig mobilises three weeks earlier. On a project where the piling programme is on the critical path, that can be worth tens of thousands of pounds in prelims alone.`
+      },
+      {
+        heading: "Quality and Accountability",
+        content: `Every design certificate is signed by David Miller, a Senior Chartered Temporary Works Design Engineer with over 25 years of experience in UK and international projects. The certificate includes a formal check certificate section, confirming that the design has been reviewed against the BRE470 methodology and the stated input parameters.
+
+The tool is not a \"black box.\" Every calculation step is shown, every partial factor is identified, and every assumption is stated. A Category 2 design checker can review the output and verify the engineering logic without needing to repeat the calculation from scratch.`
+      },
+      {
+        heading: "Who Should Use It",
+        content: `The BRE470 Piling Mat Designer is designed for:
+
+**Piling contractors** who need compliant platform designs quickly and cost-effectively.
+
+**Temporary Works Coordinators** who need a formal design document to satisfy BS 5975 and CDM 2015 requirements.
+
+**Principal Contractors** who need to demonstrate that working platforms have been properly designed before piling operations commence.
+
+**Site Agents and Project Managers** who need to keep the programme moving without compromising safety.
+
+Working platform design should not be a bottleneck. The engineering is well-established, the methodology is codified in BRE470, and the regulatory framework under CDM 2015 and BS 5975:2024 is clear. What has been missing is a fast, affordable, and transparent way to get from soil parameters to signed certificate. The BRE470 Piling Mat Designer closes that gap.
+
+The tool is live now at www.bre470pilingmatdesign.com. A free CPD presentation — \"BRE470 Compliance Made Simple\" — is also available for teams at www.bre470pilingmatdesign.com/cpd.`
+      }
+    ]
+  }
 ];
 
 export function getArticleBySlug(slug: string): BlogArticle | undefined {

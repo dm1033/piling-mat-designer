@@ -23,6 +23,7 @@ import CPD from "./pages/CPD";
 import AdminCpdRequests from "./pages/admin/AdminCpdRequests";
 import CpdSuccess from "./pages/CpdSuccess";
 import ForContractors from "./pages/ForContractors";
+import Partner from "./pages/Partner";
 
 function Router() {
   return (
@@ -41,6 +42,7 @@ function Router() {
       <Route path="/cpd" component={CPD} />
       <Route path="/cpd-success" component={CpdSuccess} />
       <Route path="/for-contractors" component={ForContractors} />
+      <Route path="/partner" component={Partner} />
 
       {/* Admin routes — wrapped in AdminLayout with role check */}
       <Route path="/admin" nest>

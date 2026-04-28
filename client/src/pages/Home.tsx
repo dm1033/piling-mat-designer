@@ -431,6 +431,7 @@ export default function Home() {
                 <li><Link href="/reference" className="hover:text-primary transition-colors">BRE470 Reference (Login Required)</Link></li>
                 <li><Link href="/cpd" className="hover:text-primary transition-colors">CPD Presentation</Link></li>
                 <li><Link href="/for-contractors" className="hover:text-primary transition-colors">For Piling Contractors</Link></li>
+                <li><Link href="/partner" className="hover:text-primary transition-colors">Work With Us</Link></li>
               </ul>
             </div>
             <div>
@@ -439,6 +440,7 @@ export default function Home() {
                 <li><Link href="/blog/what-is-bre470" className="hover:text-primary transition-colors">What Is BRE470?</Link></li>
                 <li><Link href="/blog/how-to-design-working-platform" className="hover:text-primary transition-colors">How to Design a Working Platform</Link></li>
                 <li><Link href="/blog/piling-mat-design-calculator" className="hover:text-primary transition-colors">Piling Mat Design Calculator</Link></li>
+                <li><Link href="/blog/digitising-bre470-platform-design" className="hover:text-primary transition-colors">BRE470 in the Digital Age</Link></li>
               </ul>
             </div>
           </div>

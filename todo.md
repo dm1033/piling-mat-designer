@@ -222,3 +222,12 @@
 - [x] Add navigation link (header + footer) on Home.tsx
 - [x] Add /for-contractors to sitemap.xml (11 URLs total)
 - [x] Run tests (88 passing, 0 TS errors), save checkpoint, deploy
+
+## Outreach Email → Partner Page & Industry Article → Blog Post
+- [x] Add industry article as new blog post in blog-articles.ts ("Working Platform Design in the Digital Age")
+- [x] Build /partner page from outreach email content (sales pitch, 15 target companies, dual CTA cards)
+- [x] Add /partner route to App.tsx
+- [x] Add navigation links (footer Quick Links + Popular Articles on Home.tsx)
+- [x] Add /partner and /blog/digitising-bre470-platform-design to sitemap.xml (13 URLs total)
+- [x] Update blog articles test (5 → 6 articles)
+- [x] Run tests (88 passing, 0 TS errors), save checkpoint, deploy
