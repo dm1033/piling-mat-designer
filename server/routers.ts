@@ -200,10 +200,7 @@ export const appRouter = router({
             {
               price_data: {
                 currency: CPD_PRODUCT.currency,
-                product_data: {
-                  name: CPD_PRODUCT.name,
-                  description: `CPD for ${input.companyName} — ${input.contactName}`,
-                },
+                product: "prod_UJlssoKDZReiDK",
                 unit_amount: CPD_PRODUCT.priceGBP,
               },
               quantity: 1,
