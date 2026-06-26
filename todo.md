@@ -231,3 +231,12 @@
 - [x] Add /partner and /blog/digitising-bre470-platform-design to sitemap.xml (13 URLs total)
 - [x] Update blog articles test (5 → 6 articles)
 - [x] Run tests (88 passing, 0 TS errors), save checkpoint, deploy
+
+## Promotional Discount Code Feature
+- [x] Add server-side `promo.validate` procedure — looks up Stripe promotion code by code string, returns discount details (percent_off, amount_off, valid, code_id)
+- [x] Build reusable `PromoCodeInput` component — text input + Apply button, shows discount badge on success, error message on invalid
+- [x] Integrate promo code into Calculator checkout flow — show PromoCodeInput before Pay button, pass promotion_code_id to createCheckout, display discounted price
+- [x] Integrate promo code into CPD booking form — show PromoCodeInput in form, pass promotion_code_id to cpd.submit, display discounted price
+- [x] Pass validated promotion_code_id to Stripe Checkout session (discounts param) on both checkout procedures
+- [x] Write 12 vitest tests for promo discount calculation logic (all passing)
+- [x] Run tests (100 passing across 8 test files, 0 TS errors), save checkpoint, deliver

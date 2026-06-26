@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import PromoCodeInput, { type AppliedPromo } from "@/components/PromoCodeInput";
 import {
   HardHat,
   BookOpen,
@@ -83,6 +84,8 @@ const PAYMENT_METHODS = [
 export default function CPD() {
   const searchString = useSearch();
   const cancelled = new URLSearchParams(searchString).get("cancelled");
+  const [appliedPromo, setAppliedPromo] = useState<AppliedPromo | null>(null);
+
   const [form, setForm] = useState({
     contactName: "",
     companyName: "",
@@ -116,6 +119,7 @@ export default function CPD() {
     submitMutation.mutate({
       ...form,
       origin: window.location.origin,
+      promotionCodeId: appliedPromo?.promotionCodeId,
     });
   };
 
@@ -422,6 +426,17 @@ export default function CPD() {
                   </div>
                 </div>
 
+                {/* Promo code */}
+                <div className="space-y-2">
+                  <Label>Promotion Code</Label>
+                  <PromoCodeInput
+                    appliedPromo={appliedPromo}
+                    onApply={setAppliedPromo}
+                    onRemove={() => setAppliedPromo(null)}
+                    disabled={submitMutation.isPending}
+                  />
+                </div>
+
                 {/* Payment info box */}
                 <div className="bg-muted/50 rounded-lg p-4 border border-border">
                   <div className="flex items-start gap-3">
@@ -445,6 +460,12 @@ export default function CPD() {
                 >
                   {submitMutation.isPending ? (
                     "Processing..."
+                  ) : appliedPromo?.discountedCpdPrice != null ? (
+                    <>
+                      <CreditCard className="w-4 h-4 mr-2" />
+                      Book & Pay £{(appliedPromo.discountedCpdPrice / 100).toFixed(2)}
+                      <span className="ml-1 line-through text-xs opacity-70">£19.99</span>
+                    </>
                   ) : (
                     <>
                       <CreditCard className="w-4 h-4 mr-2" /> Book & Pay £19.99

@@ -38,6 +38,7 @@ import { trpc } from "@/lib/trpc";
 import { useDemoMode } from "@/hooks/useDemoMode";
 import { getLoginUrl } from "@/const";
 import { toast } from "sonner";
+import PromoCodeInput, { type AppliedPromo } from "@/components/PromoCodeInput";
 
 type SubgradeType = "cohesive" | "granular";
 
@@ -76,6 +77,9 @@ export default function Calculator() {
   const [projectName, setProjectName] = useState("");
   const [siteLocation, setSiteLocation] = useState("");
   const [clientName, setClientName] = useState("");
+
+  // Promotional discount code
+  const [appliedPromo, setAppliedPromo] = useState<AppliedPromo | null>(null);
 
   // Stripe checkout mutation
   const createCheckout = trpc.design.createCheckout.useMutation({
@@ -181,8 +185,9 @@ export default function Calculator() {
       clientName: clientName.trim() || undefined,
       calculationInputs: currentInputs,
       calculationResult: result,
+      promotionCodeId: appliedPromo?.promotionCodeId,
     });
-  }, [isAuthenticated, projectName, siteLocation, clientName, result, currentInputs, createCheckout]);
+  }, [isAuthenticated, projectName, siteLocation, clientName, result, currentInputs, createCheckout, appliedPromo]);
 
   const handleReset = useCallback(() => {
     setResult(null);
@@ -191,6 +196,7 @@ export default function Calculator() {
     setProjectName("");
     setSiteLocation("");
     setClientName("");
+    setAppliedPromo(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
@@ -558,8 +564,22 @@ export default function Calculator() {
                     <p className="text-muted-foreground mt-1 max-w-md mx-auto">
                       Professional BRE470 design certificate with full calculations, signed by David Miller — Temporary Works Designer.
                     </p>
-                    <div className="mt-3">
-                      <span className="font-heading text-4xl font-bold text-primary">£299.99</span>
+                    <div className="mt-3 space-y-1">
+                      {appliedPromo?.discountedDesignPrice != null ? (
+                        <div className="flex items-center justify-center gap-3">
+                          <span className="font-heading text-2xl font-bold text-muted-foreground line-through">£299.99</span>
+                          <span className="font-heading text-4xl font-bold text-green-600">
+                            £{(appliedPromo.discountedDesignPrice / 100).toFixed(2)}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="font-heading text-4xl font-bold text-primary">£299.99</span>
+                      )}
+                      {appliedPromo && (
+                        <p className="text-sm text-green-600 font-medium">
+                          {appliedPromo.discountDescription} applied
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -595,6 +615,17 @@ export default function Calculator() {
                       />
                     </div>
 
+                    {/* Promo code input */}
+                    <div>
+                      <Label className="text-sm font-medium mb-1.5 block">Promotion Code</Label>
+                      <PromoCodeInput
+                        appliedPromo={appliedPromo}
+                        onApply={setAppliedPromo}
+                        onRemove={() => setAppliedPromo(null)}
+                        disabled={createCheckout.isPending}
+                      />
+                    </div>
+
                     <Button
                       size="lg"
                       onClick={handlePurchase}
@@ -605,6 +636,11 @@ export default function Calculator() {
                         <>
                           <div className="w-5 h-5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
                           Processing...
+                        </>
+                      ) : appliedPromo?.discountedDesignPrice != null ? (
+                        <>
+                          <ShoppingCart className="w-5 h-5" />
+                          Purchase Certificate — £{(appliedPromo.discountedDesignPrice / 100).toFixed(2)}
                         </>
                       ) : (
                         <>

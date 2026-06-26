@@ -47,6 +47,7 @@ export const appRouter = router({
         clientName: z.string().optional(),
         calculationInputs: z.any(),
         calculationResult: z.any(),
+        promotionCodeId: z.string().optional(), // Stripe promotion code ID (e.g. promo_xxx)
       }))
       .mutation(async ({ ctx, input }) => {
         const stripe = getStripe();
@@ -95,7 +96,10 @@ export const appRouter = router({
             purchase_type: "design",
           },
           customer_email: ctx.user.email || undefined,
-          allow_promotion_codes: true,
+          // If a validated promo code was provided, apply it; otherwise allow manual entry at checkout
+          ...(input.promotionCodeId
+            ? { discounts: [{ promotion_code: input.promotionCodeId }] }
+            : { allow_promotion_codes: true }),
           success_url: `${origin}/payment-success?session_id={CHECKOUT_SESSION_ID}&design_id=${designId}`,
           cancel_url: `${origin}/calculator?cancelled=true`,
         });
@@ -174,6 +178,7 @@ export const appRouter = router({
         format: z.enum(["online", "in-person", "either"]).default("either"),
         additionalNotes: z.string().optional(),
         origin: z.string().optional(),
+        promotionCodeId: z.string().optional(), // Stripe promotion code ID
       }))
       .mutation(async ({ ctx, input }) => {
         // Create the CPD request record (pending payment)
@@ -214,7 +219,10 @@ export const appRouter = router({
             customer_email: input.email,
             purchase_type: "cpd",
           },
-          allow_promotion_codes: true,
+          // If a validated promo code was provided, apply it; otherwise allow manual entry at checkout
+          ...(input.promotionCodeId
+            ? { discounts: [{ promotion_code: input.promotionCodeId }] }
+            : { allow_promotion_codes: true }),
           success_url: `${origin}/cpd-success?session_id={CHECKOUT_SESSION_ID}&cpd_id=${id}`,
           cancel_url: `${origin}/cpd?cancelled=true`,
         });
@@ -245,6 +253,69 @@ export const appRouter = router({
           paymentStatus: cpd.paymentStatus,
           createdAt: cpd.createdAt,
         };
+      }),
+  }),
+
+  // Promotional code validation
+  promo: router({
+    /** Validate a Stripe promotion code — returns discount details if valid */
+    validate: publicProcedure
+      .input(z.object({ code: z.string().min(1) }))
+      .mutation(async ({ input }) => {
+        const stripe = getStripe();
+        // Search for active promotion codes matching the entered code
+        const promoCodes = await stripe.promotionCodes.list({
+          code: input.code,
+          active: true,
+          limit: 1,
+          expand: ["data.coupon"],
+        });
+
+        if (promoCodes.data.length === 0) {
+          return { valid: false, message: "Invalid or expired promotion code" } as const;
+        }
+
+        const promoCode = promoCodes.data[0];
+        // The promotion sub-object holds the coupon reference (expanded)
+        const promotion = promoCode.promotion;
+        if (promotion.type !== "coupon" || !promotion.coupon) {
+          return { valid: false, message: "This promotion code type is not supported" } as const;
+        }
+        const coupon = promotion.coupon as Stripe.Coupon;
+
+        // Check coupon is still valid (not expired, not max redemptions reached)
+        if (!coupon.valid) {
+          return { valid: false, message: "This promotion code is no longer valid" } as const;
+        }
+
+        // Build human-readable discount description
+        let discountDescription: string;
+        let discountedDesignPrice: number | null = null;
+        let discountedCpdPrice: number | null = null;
+
+        if (coupon.percent_off) {
+          discountDescription = `${coupon.percent_off}% off`;
+          discountedDesignPrice = Math.round(PRODUCT.priceGBP * (1 - coupon.percent_off / 100));
+          discountedCpdPrice = Math.round(CPD_PRODUCT.priceGBP * (1 - coupon.percent_off / 100));
+        } else if (coupon.amount_off) {
+          discountDescription = `${formatPrice(coupon.amount_off)} off`;
+          discountedDesignPrice = Math.max(0, PRODUCT.priceGBP - coupon.amount_off);
+          discountedCpdPrice = Math.max(0, CPD_PRODUCT.priceGBP - coupon.amount_off);
+        } else {
+          discountDescription = "Discount applied";
+        }
+
+        return {
+          valid: true,
+          promotionCodeId: promoCode.id,
+          code: promoCode.code,
+          discountDescription,
+          percentOff: coupon.percent_off ?? null,
+          amountOff: coupon.amount_off ?? null,
+          discountedDesignPrice,
+          discountedCpdPrice,
+          name: coupon.name ?? null,
+        } as const;
       }),
   }),
 
