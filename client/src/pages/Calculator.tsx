@@ -1,11 +1,10 @@
 /**
  * Calculator Page - BRE470 Working Platform Design Tool
- * Per-design payment model: calculate → pay £299.99 → receive certificate
- * 
- * Flow:
- * 1. Guest/logged-in user enters parameters and runs calculation (one free demo)
- * 2. After calculation, user enters project details and pays £299.99
- * 3. After payment, user receives professional design certificate
+ *
+ * Designing is free and unlimited — anyone can run calculations and see
+ * draft results on screen (marked NOT FOR CONSTRUCTION). The paid
+ * deliverable (£299.99) is the Official Design Pack, emailed as a PDF:
+ * drawings, full calculations, risk assessment and signed check certificate.
  */
 import { useState, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
@@ -21,8 +20,9 @@ import {
   FileCheck, PoundSterling, ShoppingCart
 } from "lucide-react";
 import CrossSection from "@/components/CrossSection";
+import PlanView from "@/components/PlanView";
+import RiskPreview from "@/components/RiskPreview";
 import RigSelector from "@/components/RigSelector";
-import DemoUpsell from "@/components/DemoUpsell";
 import {
   calculateDesign,
   type DesignInputs,
@@ -35,7 +35,6 @@ import {
 import { type PilingRig } from "@/lib/rig-database";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
-import { useDemoMode } from "@/hooks/useDemoMode";
 import { getLoginUrl } from "@/const";
 import { toast } from "sonner";
 import PromoCodeInput, { type AppliedPromo } from "@/components/PromoCodeInput";
@@ -44,7 +43,6 @@ type SubgradeType = "cohesive" | "granular";
 
 export default function Calculator() {
   const { isAuthenticated, loading: authLoading } = useAuth();
-  const { hasUsedDemo, recordDemoUse } = useDemoMode();
   const [subgradeType, setSubgradeType] = useState<SubgradeType>("cohesive");
   const [useReinforcement, setUseReinforcement] = useState(false);
   const [waterTableNear, setWaterTableNear] = useState(false);
@@ -71,7 +69,6 @@ export default function Calculator() {
 
   // Result state
   const [result, setResult] = useState<DesignResult | null>(null);
-  const [demoLocked, setDemoLocked] = useState(false);
 
   // Project details for certificate (shown after calculation)
   const [projectName, setProjectName] = useState("");
@@ -143,30 +140,15 @@ export default function Calculator() {
   }, [subgradeType, cu, phiPlatform, gammaPlatform, W, L1, L2, q1k, q2k, useReinforcement, Tult, phiSubgrade, gammaSubgrade, waterTableNear]);
 
   const handleCalculate = useCallback(() => {
-    // If already used demo and not buying, block
-    if (hasUsedDemo && !result) {
-      setDemoLocked(true);
-      setTimeout(() => {
-        document.getElementById("demo-upsell")?.scrollIntoView({ behavior: "smooth" });
-      }, 100);
-      return;
-    }
-
     const res = calculateDesign(currentInputs as DesignInputs);
     setResult(res);
     setShowSteps(false);
-
-    // Record demo use (only first time)
-    if (!hasUsedDemo) {
-      const isNowLocked = recordDemoUse();
-      setDemoLocked(isNowLocked);
-    }
 
     // Scroll to results
     setTimeout(() => {
       document.getElementById("results-section")?.scrollIntoView({ behavior: "smooth" });
     }, 100);
-  }, [currentInputs, hasUsedDemo, result, recordDemoUse]);
+  }, [currentInputs]);
 
   const handlePurchase = useCallback(() => {
     if (!isAuthenticated) {
@@ -192,16 +174,12 @@ export default function Calculator() {
   const handleReset = useCallback(() => {
     setResult(null);
     setShowSteps(false);
-    setDemoLocked(false);
     setProjectName("");
     setSiteLocation("");
     setClientName("");
     setAppliedPromo(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
-
-  // Determine if the calculate button should be blocked
-  const isBlocked = hasUsedDemo && !result;
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -224,17 +202,15 @@ export default function Calculator() {
         </div>
       </header>
 
-      {/* Demo Banner for users who haven't used demo yet */}
-      {!hasUsedDemo && (
-        <div className="bg-primary/10 border-b border-primary/20">
-          <div className="container py-2.5 flex items-center justify-center gap-2">
-            <Sparkles className="w-4 h-4 text-primary" />
-            <p className="text-sm font-medium text-primary">
-              Free demo — try one calculation before you buy
-            </p>
-          </div>
+      {/* Free design banner */}
+      <div className="bg-primary/10 border-b border-primary/20">
+        <div className="container py-2.5 flex items-center justify-center gap-2">
+          <Sparkles className="w-4 h-4 text-primary" />
+          <p className="text-sm font-medium text-primary text-center">
+            Design free — unlimited calculations. Pay only for the official PDF pack, emailed to you.
+          </p>
         </div>
-      )}
+      </div>
 
       <main className="flex-1 pb-32">
         <div className="container py-6 space-y-6">
@@ -461,27 +437,32 @@ export default function Calculator() {
             </CardContent>
           </Card>
 
-          {/* Demo Upsell - shown when blocked */}
-          {isBlocked && (
-            <div id="demo-upsell">
-              <DemoUpsell hasUsedDemo={hasUsedDemo} />
-            </div>
-          )}
-
           {/* Calculate Button */}
           <Button
             size="lg"
             onClick={handleCalculate}
-            className={`w-full h-16 text-lg font-heading font-bold ${isBlocked ? "opacity-50" : ""}`}
+            className="w-full h-16 text-lg font-heading font-bold"
           >
             <CalcIcon className="w-6 h-6 mr-2" />
-            {isBlocked ? "Demo Used — Purchase a Design Below" : "Calculate Platform Thickness"}
+            Calculate Platform Thickness
           </Button>
 
           {/* Results */}
           {result && (
             <div id="results-section" className="space-y-4">
               <Separator />
+
+              {/* Draft watermark notice */}
+              <div className="rounded-lg border-2 border-dashed border-warning/60 bg-warning/10 px-4 py-3 text-center">
+                <p className="font-heading font-bold text-sm tracking-widest text-warning uppercase">
+                  Draft — Not for Construction
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  On-screen results are for review only. The official design record — PDF drawings,
+                  calculations, risk assessment and signed check certificate — is emailed to you when
+                  you purchase the Official Design Pack below.
+                </p>
+              </div>
 
               {/* Summary Card */}
               <Card className={`border-l-4 ${
@@ -520,15 +501,41 @@ export default function Calculator() {
                 </CardContent>
               </Card>
 
-              {/* Cross-Section Diagram */}
+              {/* Drawings — cross-section and plan */}
               {result.designThicknessMm > 0 && (
-                <CrossSection
-                  thickness={result.designThicknessMm}
-                  trackWidth={parseFloat(W) || 0.7}
-                  subgradeType={subgradeType}
-                  useReinforcement={useReinforcement}
-                />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <CrossSection
+                    thickness={result.designThicknessMm}
+                    trackWidth={parseFloat(W) || 0.7}
+                    subgradeType={subgradeType}
+                    useReinforcement={useReinforcement}
+                  />
+                  <PlanView
+                    trackWidth={parseFloat(W) || 0.7}
+                    trackLength={parseFloat(L1) || 3.6}
+                    thickness={result.designThicknessMm}
+                  />
+                </div>
               )}
+
+              {/* Risk assessment preview */}
+              <RiskPreview
+                inputs={{
+                  subgradeType,
+                  cu: parseFloat(cu) || undefined,
+                  phiSubgrade: parseFloat(phiSubgrade) || undefined,
+                  waterTableNear,
+                  useReinforcement,
+                  W: parseFloat(W) || 0,
+                  q1k: parseFloat(q1k) || 0,
+                  q2k: parseFloat(q2k) || 0,
+                }}
+                result={{
+                  platformRequired: result.platformRequired,
+                  designThicknessMm: result.designThicknessMm,
+                  status: result.status,
+                }}
+              />
 
               {/* Calculation Steps Preview (collapsed, limited for demo) */}
               <Card>
@@ -560,9 +567,11 @@ export default function Calculator() {
                     <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
                       <FileCheck className="w-8 h-8 text-primary" />
                     </div>
-                    <h3 className="font-heading text-xl font-bold">Get Your Design Certificate</h3>
+                    <h3 className="font-heading text-xl font-bold">Get the Official Design Pack</h3>
                     <p className="text-muted-foreground mt-1 max-w-md mx-auto">
-                      Professional BRE470 design certificate with full calculations, signed by David Miller — Temporary Works Designer.
+                      Emailed to you as a PDF: design drawings (cross-section &amp; plan), full BRE470
+                      calculations, working platform risk assessment, and check certificate signed by
+                      David Miller — Temporary Works Designer.
                     </p>
                     <div className="mt-3 space-y-1">
                       {appliedPromo?.discountedDesignPrice != null ? (
@@ -640,12 +649,12 @@ export default function Calculator() {
                       ) : appliedPromo?.discountedDesignPrice != null ? (
                         <>
                           <ShoppingCart className="w-5 h-5" />
-                          Purchase Certificate — £{(appliedPromo.discountedDesignPrice / 100).toFixed(2)}
+                          Buy Design Pack — £{(appliedPromo.discountedDesignPrice / 100).toFixed(2)}
                         </>
                       ) : (
                         <>
                           <ShoppingCart className="w-5 h-5" />
-                          Purchase Certificate — £299.99
+                          Buy Design Pack — £299.99
                         </>
                       )}
                     </Button>
@@ -658,7 +667,8 @@ export default function Calculator() {
 
                     <div className="text-center">
                       <p className="text-xs text-muted-foreground">
-                        Secure payment via Stripe. Certificate includes full calculation audit trail.
+                        Secure payment via Stripe (card, Apple/Google Pay or PayPal). Your PDF pack is
+                        emailed to your checkout address; you can also view and download it from My Designs.
                       </p>
                     </div>
                   </div>

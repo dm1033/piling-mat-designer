@@ -153,7 +153,7 @@ export default function ForContractors() {
               </Link>
               <Link href="/calculator?demo=true">
                 <Button variant="outline" size="lg" className="h-14 px-8 text-lg font-heading border-white/30 text-white hover:bg-white/10 w-full sm:w-auto">
-                  Try Free Demo
+                  Design Free
                 </Button>
               </Link>
             </div>
@@ -241,7 +241,7 @@ export default function ForContractors() {
           <div className="text-center mt-10">
             <Link href="/calculator?demo=true">
               <Button size="lg" className="h-14 px-8 text-lg font-heading font-bold gap-2">
-                Try a Free Demo Calculation
+                Design Free — Unlimited Calculations
                 <ArrowRight className="w-5 h-5" />
               </Button>
             </Link>
@@ -473,7 +473,7 @@ export default function ForContractors() {
             </Link>
             <Link href="/calculator?demo=true">
               <Button size="lg" variant="outline" className="h-14 px-8 text-lg font-heading border-white/30 text-white hover:bg-white/10 gap-2">
-                Try Free Demo First
+                Design Free First
               </Button>
             </Link>
           </div>

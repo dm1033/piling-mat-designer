@@ -153,6 +153,51 @@ export const appRouter = router({
       const count = await countUserDesigns(ctx.user.id);
       return { count };
     }),
+
+    /** Download the official PDF pack for a paid design (base64) */
+    downloadPack: protectedProcedure
+      .input(z.object({ designId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const design = await getDesignById(input.designId, ctx.user.id);
+        if (!design) throw new Error("Design not found");
+        if (design.paymentStatus !== "completed") throw new Error("Payment not completed");
+
+        const { generateDesignPackPdf } = await import("./pdf");
+        const pdf = await generateDesignPackPdf(design);
+        return {
+          filename: `${design.certificateRef}-Design-Pack.pdf`,
+          base64: pdf.toString("base64"),
+        };
+      }),
+
+    /** Re-send the official PDF pack email for a paid design */
+    resendPack: protectedProcedure
+      .input(z.object({ designId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const design = await getDesignById(input.designId, ctx.user.id);
+        if (!design) throw new Error("Design not found");
+        if (design.paymentStatus !== "completed") throw new Error("Payment not completed");
+
+        const to = design.customerEmail || ctx.user.email || "";
+        if (!to) throw new Error("No email address on record for this design");
+
+        const { generateDesignPackPdf } = await import("./pdf");
+        const { sendDesignPackEmail } = await import("./email");
+        const { updateDesignPackDelivery } = await import("./db");
+
+        const pdf = await generateDesignPackPdf(design);
+        const outcome = await sendDesignPackEmail(to, design, pdf);
+        await updateDesignPackDelivery(design.id, outcome.sent ? "sent" : "manual", outcome.error);
+
+        if (!outcome.sent) {
+          await notifyOwner({
+            title: `Design pack resend NEEDS MANUAL SENDING — ${design.certificateRef}`,
+            content: `Customer requested a resend to ${to} but automatic email is unavailable (${outcome.error}). Send manually from the admin panel (design #${design.id}).`,
+          }).catch(() => {});
+        }
+
+        return { sent: outcome.sent, email: to };
+      }),
   }),
 
   // CPD presentation requests (now paid at £19.99)

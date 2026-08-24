@@ -13,8 +13,9 @@ export const CPD_PRODUCT = {
 
 export const PRODUCT = {
   id: "bre470_design",
-  name: "BRE470 Working Platform Design & Certificate",
-  description: "Full BRE470 compliant working platform design with interpretive calculations and check certificate signed by David Miller, Temporary Works Designer.",
+  name: "BRE470 Official Design Pack",
+  description:
+    "Official BRE470 working platform design pack, emailed to you as a PDF: design drawings (cross-section & plan), full interpretive calculations, working platform risk assessment, and check certificate signed by David Miller, Temporary Works Designer. Designing on the site is free — you pay only for the official deliverables.",
   priceGBP: 29999, // £299.99 in pence
   currency: "gbp" as const,
 };

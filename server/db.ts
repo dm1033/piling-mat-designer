@@ -150,7 +150,7 @@ export async function createDesign(data: {
 }
 
 /** Mark a design as paid and issue the certificate */
-export async function markDesignPaid(stripeSessionId: string, paymentIntentId: string): Promise<void> {
+export async function markDesignPaid(stripeSessionId: string, paymentIntentId: string, customerEmail?: string): Promise<void> {
   const db = await getDb();
   if (!db) return;
 
@@ -159,7 +159,38 @@ export async function markDesignPaid(stripeSessionId: string, paymentIntentId: s
     stripePaymentIntentId: paymentIntentId,
     certificateIssued: true,
     certificateIssuedAt: new Date(),
+    ...(customerEmail ? { customerEmail } : {}),
   }).where(eq(designs.stripeSessionId, stripeSessionId));
+}
+
+/** Get a design by its Stripe checkout session ID */
+export async function getDesignBySessionId(stripeSessionId: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+
+  const result = await db
+    .select()
+    .from(designs)
+    .where(eq(designs.stripeSessionId, stripeSessionId))
+    .limit(1);
+
+  return result.length > 0 ? result[0] : undefined;
+}
+
+/** Record the outcome of emailing the official PDF pack for a design */
+export async function updateDesignPackDelivery(
+  designId: number,
+  status: "pending" | "sent" | "failed" | "manual",
+  error?: string
+): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+
+  await db.update(designs).set({
+    packEmailStatus: status,
+    packEmailedAt: status === "sent" ? new Date() : null,
+    packEmailError: error || null,
+  }).where(eq(designs.id, designId));
 }
 
 /** Get all designs for a user */

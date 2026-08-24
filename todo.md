@@ -240,3 +240,22 @@
 - [x] Pass validated promotion_code_id to Stripe Checkout session (discounts param) on both checkout procedures
 - [x] Write 12 vitest tests for promo discount calculation logic (all passing)
 - [x] Run tests (100 passing across 8 test files, 0 TS errors), save checkpoint, deliver
+
+## Free Design Tool + Official Emailed PDF Pack (Site Launch)
+- [x] Remove one-free-demo limit — designing is now free and unlimited (no login needed to calculate)
+- [x] Mark on-screen results as DRAFT — NOT FOR CONSTRUCTION
+- [x] New PlanView SVG drawing (platform plan + rig footprint) alongside cross-section
+- [x] New shared risk assessment generator (shared/risk-assessment.ts) with on-screen preview
+- [x] Server-side Official Design Pack PDF (server/pdf.ts, pdfkit): cover, signed certificate,
+      calculation audit trail, cross-section + plan drawings with title blocks, risk assessment, notes
+- [x] Email delivery (server/email.ts, nodemailer/SMTP) — pack emailed on payment via Stripe webhook;
+      manual-fulfilment fallback with owner notification when SMTP unconfigured or failing
+- [x] New designs columns: customerEmail, packEmailStatus, packEmailedAt, packEmailError (migration 0006)
+- [x] New tRPC procedures: design.downloadPack (base64 PDF) and design.resendPack
+- [x] PaymentSuccess: "pack emailed" message + Download PDF Pack button
+- [x] My Designs: PDF download and Email-again actions per paid design
+- [x] Home / Partner / ForContractors / SEO meta + JSON-LD updated to "design free, £299.99 official pack"
+- [x] 96 tests passing (10 new design-pack tests), tsc clean, production build clean
+- [ ] Configure SMTP env vars in production (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, EMAIL_FROM, EMAIL_BCC)
+- [ ] Run db:push in production to apply migration 0006
+- [ ] Point bre470pilingmatdesign.com DNS at the production deployment

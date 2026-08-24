@@ -44,6 +44,11 @@ export const designs = mysqlTable("designs", {
   /** Certificate status */
   certificateIssued: boolean("certificateIssued").default(false).notNull(),
   certificateIssuedAt: timestamp("certificateIssuedAt"),
+  /** Official PDF pack email delivery (the paid deliverable) */
+  customerEmail: varchar("customerEmail", { length: 320 }),
+  packEmailStatus: mysqlEnum("packEmailStatus", ["pending", "sent", "failed", "manual"]).default("pending").notNull(),
+  packEmailedAt: timestamp("packEmailedAt"),
+  packEmailError: text("packEmailError"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
