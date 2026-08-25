@@ -1,7 +1,8 @@
 /**
  * Home Page — BRE470 Piling Mat Designer
- * Per-design payment model: £299.99 per certified design
- * Signed by David Miller, Temporary Works Designer
+ * Free unlimited design tool; £299.99 buys the Official Design Pack —
+ * PDF drawings, calculations, risk assessment and check certificate,
+ * emailed to the buyer. Signed by David Miller, Temporary Works Designer.
  */
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -95,28 +96,30 @@ export default function Home() {
               <span className="text-sm font-medium text-primary">BR 470 Compliant</span>
             </div>
             <h1 className="font-heading text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight">
-              Professional Piling Mat
-              <span className="text-primary block mt-1">Design Certificates</span>
+              Design Your Piling Mat
+              <span className="text-primary block mt-1">Free. Certify for £299.99</span>
             </h1>
             <p className="text-lg sm:text-xl text-gray-300 mt-4 max-w-xl leading-relaxed">
-              Get a fully certified BRE470 working platform design with interpretive calculations and check certificate — signed by David Miller, Temporary Works Designer.
+              Run unlimited BRE470 working platform designs free of charge. When you're ready, the
+              Official Design Pack — PDF drawings, full calculations, risk assessment and check
+              certificate signed by David Miller, Temporary Works Designer — is emailed straight to your inbox.
             </p>
             <p className="text-3xl sm:text-4xl font-heading font-bold text-white mt-6">
-              £299.99 <span className="text-lg text-gray-400 font-normal">per design</span>
+              £299.99 <span className="text-lg text-gray-400 font-normal">per official design pack — designing is free</span>
             </p>
             <div className="flex flex-col sm:flex-row gap-3 mt-8">
               <Link href="/calculator">
                 <Button size="lg" className="h-14 px-8 text-lg font-heading font-bold gap-2 w-full sm:w-auto">
                   <Calculator className="w-5 h-5" />
-                  Start Your Design
+                  Start Designing — Free
                   <ArrowRight className="w-5 h-5" />
                 </Button>
               </Link>
-              <Link href="/calculator?demo=true">
+              <a href="#pricing">
                 <Button variant="outline" size="lg" className="h-14 px-8 text-lg font-heading border-white/30 text-white hover:bg-white/10 w-full sm:w-auto">
-                  Try Free Demo
+                  What's in the Pack?
                 </Button>
-              </Link>
+              </a>
             </div>
           </div>
         </div>
@@ -157,7 +160,8 @@ export default function Home() {
           <div className="text-center mb-12">
             <h2 className="font-heading text-3xl sm:text-4xl font-bold">What You Get for £299.99</h2>
             <p className="text-muted-foreground mt-3 max-w-2xl mx-auto text-lg">
-              A traditional consultancy design costs £500–£1,000. Our tool delivers the same professional output at a fraction of the cost.
+              Design free on the site as many times as you like. Pay only when you need the official
+              deliverables — a traditional consultancy design costs £500–£1,000 and takes weeks.
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -183,13 +187,13 @@ export default function Home() {
             />
             <FeatureCard
               icon={<Zap className="w-7 h-7" />}
-              title="Instant Results"
-              description="Get your design thickness, cross-section diagram, and full calculation breakdown in under 2 minutes."
+              title="Design Drawings"
+              description="Platform cross-section and plan drawings with title blocks — see them free on screen; issued versions in the PDF pack."
             />
             <FeatureCard
               icon={<Award className="w-7 h-7" />}
-              title="Professional Output"
-              description="Print-ready A4 certificate with project details, calculation audit trail, and designer's signature block."
+              title="Risk Assessment + Emailed PDF"
+              description="A site-specific working platform risk assessment, delivered with the drawings and calculations as a professional PDF pack, straight to your inbox."
             />
           </div>
         </div>
@@ -203,9 +207,9 @@ export default function Home() {
             <p className="text-muted-foreground mt-3 text-lg">Three simple steps to your certified design</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-            <StepCard number={1} title="Enter Your Parameters" description="Select your piling rig, enter ground conditions and platform material properties. The tool guides you step by step." />
-            <StepCard number={2} title="Review Your Design" description="See the calculated platform thickness, cross-section diagram, and full BRE470 calculation breakdown instantly." />
-            <StepCard number={3} title="Get Your Certificate" description="Pay £299.99 and receive your professional design certificate with unique reference number, signed by David Miller." />
+            <StepCard number={1} title="Design Free" description="Select your piling rig, enter ground conditions and platform material properties. Run as many calculations as you like — no charge, no login needed." />
+            <StepCard number={2} title="Review On Screen" description="See the platform thickness, cross-section and plan drawings, calculation breakdown and risk assessment preview instantly — marked as draft." />
+            <StepCard number={3} title="Get the Official Pack" description="Pay £299.99 and the official PDF pack — drawings, calculations, risk assessment and signed check certificate — is emailed to you." />
           </div>
         </div>
       </section>
@@ -251,27 +255,27 @@ export default function Home() {
                 <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
                   <FileCheck className="w-8 h-8 text-primary" />
                 </div>
-                <h3 className="font-heading text-2xl font-bold">BRE470 Design Certificate</h3>
+                <h3 className="font-heading text-2xl font-bold">BRE470 Official Design Pack</h3>
                 <p className="text-muted-foreground mt-2">
-                  Full interpretive design with check certificate signed by David Miller
+                  Emailed to you as a PDF — drawings, calculations, risk assessment and signed check certificate
                 </p>
                 <div className="mt-6">
                   <span className="font-heading text-5xl font-bold text-primary">£299.99</span>
-                  <span className="text-muted-foreground ml-2">per design</span>
+                  <span className="text-muted-foreground ml-2">per design pack</span>
                 </div>
                 <div className="mt-4 text-sm text-muted-foreground">
-                  Traditional consultancy: <span className="line-through">£500–£1,000</span>
+                  Designing on the site is <span className="font-semibold text-foreground">free</span> — traditional consultancy: <span className="line-through">£500–£1,000</span>
                 </div>
                 <ul className="text-left space-y-2 mt-6 max-w-sm mx-auto">
                   {[
+                    "Design drawings — cross-section & plan",
                     "Full BRE470 Appendix A calculations",
-                    "Professional check certificate",
+                    "Working platform risk assessment",
+                    "Check certificate signed by David Miller TWD",
                     "Unique reference number",
-                    "Signed by David Miller TWD",
                     "Cohesive & granular subgrades",
                     "23 pre-loaded piling rigs",
-                    "Instant digital delivery",
-                    "Print-ready A4 format",
+                    "Emailed as a print-ready A4 PDF",
                   ].map((f) => (
                     <li key={f} className="flex items-center gap-2 text-sm">
                       <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
@@ -282,14 +286,12 @@ export default function Home() {
                 <Link href="/calculator">
                   <Button size="lg" className="w-full h-14 text-lg font-heading font-bold mt-8 gap-2">
                     <Calculator className="w-5 h-5" />
-                    Start Your Design
+                    Start Designing — Free
                   </Button>
                 </Link>
-                <Link href="/calculator?demo=true">
-                  <Button variant="ghost" size="sm" className="mt-3 text-muted-foreground">
-                    Try a free demo calculation first
-                  </Button>
-                </Link>
+                <p className="mt-3 text-sm text-muted-foreground">
+                  No payment needed until you order the official pack.
+                </p>
               </CardContent>
             </Card>
           </div>

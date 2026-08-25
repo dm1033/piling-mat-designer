@@ -1,7 +1,8 @@
 /**
- * Payment Success Page — Per-design certificate model
- * Shows after Stripe checkout completes for a £299.99 design purchase.
- * Displays certificate reference and links to view/download the certificate.
+ * Payment Success Page — Official Design Pack model
+ * Shows after Stripe checkout completes for a £299.99 design pack purchase.
+ * The pack (PDF drawings, calculations, risk assessment, certificate) is
+ * emailed automatically; this page confirms that and offers a direct download.
  */
 import { useEffect, useMemo } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -9,8 +10,10 @@ import { trpc } from "@/lib/trpc";
 import { Link, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { CheckCircle2, FileCheck, Calculator, ArrowRight, HardHat, Loader2 } from "lucide-react";
+import { CheckCircle2, FileCheck, Calculator, ArrowRight, HardHat, Loader2, Mail, Download } from "lucide-react";
 import { getLoginUrl } from "@/const";
+import { downloadBase64Pdf } from "@/lib/utils";
+import { toast } from "sonner";
 
 export default function PaymentSuccess() {
   const { isAuthenticated, loading: authLoading } = useAuth();
@@ -77,7 +80,16 @@ export default function PaymentSuccess() {
             <div>
               <h1 className="font-heading text-2xl sm:text-3xl font-bold">Payment Successful!</h1>
               <p className="text-muted-foreground mt-2">
-                Your BRE470 design certificate has been issued.
+                Your official design pack is on its way.
+              </p>
+            </div>
+
+            <div className="flex items-start gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4 text-left">
+              <Mail className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+              <p className="text-sm text-muted-foreground">
+                The <span className="font-medium text-foreground">official PDF pack</span> — design
+                drawings, full BRE470 calculations, risk assessment and signed check certificate — is
+                being emailed to your checkout address. You can also download it below or from My Designs.
               </p>
             </div>
 
@@ -116,11 +128,12 @@ export default function PaymentSuccess() {
             ) : null}
 
             <div className="space-y-3">
+              {design && <DownloadPackButton designId={design.id} />}
               {design && (
                 <Link href={`/certificate/${design.id}`}>
-                  <Button size="lg" className="w-full h-14 text-lg font-heading font-bold gap-2">
+                  <Button variant="outline" size="lg" className="w-full h-12 gap-2">
                     <FileCheck className="w-5 h-5" />
-                    View Certificate
+                    View Certificate Online
                     <ArrowRight className="w-5 h-5" />
                   </Button>
                 </Link>
@@ -144,5 +157,27 @@ export default function PaymentSuccess() {
         </Card>
       </main>
     </div>
+  );
+}
+
+function DownloadPackButton({ designId }: { designId: number }) {
+  const downloadPack = trpc.design.downloadPack.useMutation({
+    onSuccess: data => {
+      downloadBase64Pdf(data.base64, data.filename);
+      toast.success("Design pack downloaded");
+    },
+    onError: err => toast.error(err.message || "Failed to generate PDF pack"),
+  });
+
+  return (
+    <Button
+      size="lg"
+      className="w-full h-14 text-lg font-heading font-bold gap-2"
+      disabled={downloadPack.isPending}
+      onClick={() => downloadPack.mutate({ designId })}
+    >
+      {downloadPack.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
+      Download PDF Pack
+    </Button>
   );
 }

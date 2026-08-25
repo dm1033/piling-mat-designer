@@ -183,7 +183,7 @@ export default function Partner() {
               <Link href="/calculator?demo=true">
                 <Button variant="outline" size="lg" className="gap-2">
                   <Calculator className="w-5 h-5" />
-                  Try the Free Demo — No Login Required
+                  Start Designing Free — No Login Required
                 </Button>
               </Link>
             </div>
@@ -333,7 +333,7 @@ export default function Partner() {
                     <Link href="/calculator?demo=true">
                       <Button variant="outline" className="w-full gap-2">
                         <Globe className="w-4 h-4" />
-                        Try Free Demo
+                        Design Free
                       </Button>
                     </Link>
                   </div>

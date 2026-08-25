@@ -11,8 +11,10 @@ import { trpc } from "@/lib/trpc";
 import { getLoginUrl } from "@/const";
 import {
   HardHat, ArrowLeft, FileCheck, Calculator, BookOpen,
-  Loader2, FileText, Clock, CheckCircle2
+  Loader2, FileText, Clock, CheckCircle2, Download, Mail
 } from "lucide-react";
+import { downloadBase64Pdf } from "@/lib/utils";
+import { toast } from "sonner";
 
 export default function Account() {
   const { user, isAuthenticated, loading: authLoading, logout } = useAuth();
@@ -131,7 +133,7 @@ export default function Account() {
                 </div>
                 <h3 className="font-heading text-lg font-bold mb-2">No designs yet</h3>
                 <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
-                  Run a calculation and purchase a design certificate to see it here.
+                  Design free in the calculator, then purchase the official design pack to see it here.
                 </p>
                 <Link href="/calculator">
                   <Button size="lg" className="gap-2">
@@ -167,6 +169,23 @@ interface DesignCardDesign {
 
 function DesignCard({ design }: { design: DesignCardDesign }) {
   const isPaid = design.paymentStatus === "completed";
+
+  const downloadPack = trpc.design.downloadPack.useMutation({
+    onSuccess: data => {
+      downloadBase64Pdf(data.base64, data.filename);
+      toast.success("Design pack downloaded");
+    },
+    onError: err => toast.error(err.message || "Failed to generate PDF pack"),
+  });
+
+  const resendPack = trpc.design.resendPack.useMutation({
+    onSuccess: data => {
+      if (data.sent) toast.success(`Design pack emailed to ${data.email}`);
+      else toast.info("Email delivery is unavailable right now — we've been notified and will send it manually.");
+    },
+    onError: err => toast.error(err.message || "Failed to resend design pack"),
+  });
+
   const dateStr = new Date(design.createdAt).toLocaleDateString("en-GB", {
     day: "numeric",
     month: "short",
@@ -205,12 +224,34 @@ function DesignCard({ design }: { design: DesignCardDesign }) {
           </div>
 
           {isPaid && (
-            <Link href={`/certificate/${design.id}`}>
-              <Button variant="outline" size="sm" className="gap-1 shrink-0">
-                <FileCheck className="w-4 h-4" />
-                View
+            <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+              <Link href={`/certificate/${design.id}`}>
+                <Button variant="outline" size="sm" className="gap-1 w-full">
+                  <FileCheck className="w-4 h-4" />
+                  View
+                </Button>
+              </Link>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1"
+                disabled={downloadPack.isPending}
+                onClick={() => downloadPack.mutate({ designId: design.id })}
+              >
+                {downloadPack.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                PDF
               </Button>
-            </Link>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-1"
+                disabled={resendPack.isPending}
+                onClick={() => resendPack.mutate({ designId: design.id })}
+              >
+                {resendPack.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
+                Email
+              </Button>
+            </div>
           )}
         </div>
       </CardContent>

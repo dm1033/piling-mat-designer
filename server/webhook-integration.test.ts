@@ -48,10 +48,18 @@ describe("Per-design product configuration", () => {
     expect(PRODUCT.currency).toBe("gbp");
   });
 
-  it("product name includes BRE470 and certificate", () => {
+  it("product name includes BRE470 and design pack", () => {
     const name = PRODUCT.name.toLowerCase();
     expect(name).toContain("bre470");
-    expect(name).toContain("certificate");
+    expect(name).toContain("design pack");
+  });
+
+  it("product description covers the emailed PDF deliverables", () => {
+    const desc = PRODUCT.description.toLowerCase();
+    expect(desc).toContain("email");
+    expect(desc).toContain("pdf");
+    expect(desc).toContain("drawings");
+    expect(desc).toContain("risk assessment");
   });
 
   it("product description mentions David Miller", () => {

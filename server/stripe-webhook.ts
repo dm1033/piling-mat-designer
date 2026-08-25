@@ -5,8 +5,56 @@
 import type { Express } from "express";
 import express from "express";
 import Stripe from "stripe";
-import { markDesignPaid, updateUserStripeCustomerId, markCpdPaid } from "./db";
+import { markDesignPaid, updateUserStripeCustomerId, markCpdPaid, getDesignBySessionId, updateDesignPackDelivery } from "./db";
 import { notifyOwner } from "./_core/notification";
+import { generateDesignPackPdf } from "./pdf";
+import { sendDesignPackEmail } from "./email";
+
+/**
+ * Fulfil a paid design: generate the official PDF pack and email it to the
+ * customer. Never throws — a fulfilment failure must not fail the webhook;
+ * instead the owner is notified so the pack can be sent manually.
+ */
+export async function fulfilDesignPack(stripeSessionId: string): Promise<void> {
+  const design = await getDesignBySessionId(stripeSessionId);
+  if (!design) {
+    console.error(`[Fulfilment] No design found for session ${stripeSessionId}`);
+    return;
+  }
+
+  const to = design.customerEmail || "";
+  try {
+    const pdf = await generateDesignPackPdf(design);
+    const outcome = await sendDesignPackEmail(to, design, pdf);
+
+    if (outcome.sent) {
+      await updateDesignPackDelivery(design.id, "sent");
+      console.log(`[Fulfilment] Design pack ${design.certificateRef} emailed to ${to}`);
+    } else {
+      await updateDesignPackDelivery(design.id, "manual", outcome.error);
+      console.warn(`[Fulfilment] Design pack ${design.certificateRef} needs manual delivery: ${outcome.error}`);
+    }
+
+    await notifyOwner({
+      title: `Design pack ${outcome.sent ? "emailed" : "NEEDS MANUAL SENDING"} — ${design.certificateRef}`,
+      content:
+        `£${(design.amountPence / 100).toFixed(2)} received for "${design.projectName || "—"}".\n` +
+        `Customer email: ${to || "unknown"}\n` +
+        `PDF pack (drawings, calculations, risk assessment): ${
+          outcome.sent
+            ? "sent automatically."
+            : `NOT sent automatically (${outcome.error}). Open the admin panel, review design #${design.id}, and email the pack manually.`
+        }`,
+    }).catch(() => {});
+  } catch (err: any) {
+    console.error(`[Fulfilment] Failed to generate/send pack for ${design.certificateRef}:`, err);
+    await updateDesignPackDelivery(design.id, "failed", err?.message || String(err)).catch(() => {});
+    await notifyOwner({
+      title: `Design pack generation FAILED — ${design.certificateRef}`,
+      content: `Payment received but PDF generation failed: ${err?.message || err}. Fulfil manually from the admin panel (design #${design.id}).`,
+    }).catch(() => {});
+  }
+}
 
 export function registerStripeWebhook(app: Express) {
   const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
@@ -70,7 +118,12 @@ export function registerStripeWebhook(app: Express) {
               console.log(`[Stripe Webhook] CPD payment completed for session ${session.id} — ${companyName}`);
             } else {
               // ─── Design Purchase (£299.99) — default ───
-              await markDesignPaid(session.id, paymentIntentId);
+              const customerEmail =
+                session.customer_details?.email ||
+                session.customer_email ||
+                session.metadata?.customer_email ||
+                "";
+              await markDesignPaid(session.id, paymentIntentId, customerEmail);
 
               // Update user's Stripe customer ID if available
               const userId = session.metadata?.user_id;
@@ -82,7 +135,11 @@ export function registerStripeWebhook(app: Express) {
                 await updateUserStripeCustomerId(parseInt(userId, 10), customerId);
               }
 
-              console.log(`[Stripe Webhook] Design certificate issued for session ${session.id}`);
+              console.log(`[Stripe Webhook] Design paid for session ${session.id} — generating official PDF pack`);
+
+              // Generate the official PDF pack (certificate, calcs, drawings,
+              // risk assessment) and email it to the customer.
+              await fulfilDesignPack(session.id);
             }
             break;
           }
