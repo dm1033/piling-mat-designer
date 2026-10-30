@@ -1,6 +1,5 @@
 package com.temporaryworksconsulting.pilingmatdesigner;
 
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.os.Build;
 import android.os.Bundle;
@@ -17,9 +16,11 @@ import android.webkit.WebResourceError;
 import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
 import androidx.webkit.WebViewAssetLoader;
+import androidx.activity.ComponentActivity;
+import androidx.activity.OnBackPressedCallback;
 import java.io.ByteArrayInputStream;
 
-public class MainActivity extends Activity {
+public class MainActivity extends ComponentActivity {
     private static final String START = "https://appassets.androidplatform.net/assets/app/index.html";
     private WebView webView;
     private boolean printing = false;
@@ -40,7 +41,9 @@ public class MainActivity extends Activity {
             }
             return insets;
         });
-        if (Build.VERSION.SDK_INT >= 33) getOnBackInvokedDispatcher().registerOnBackInvokedCallback(0, this::goBack);
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override public void handleOnBackPressed() { goBack(); }
+        });
         WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG);
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
@@ -85,7 +88,6 @@ public class MainActivity extends Activity {
         });
     }
     private void goBack() { if (webView.canGoBack()) webView.goBack(); else new AlertDialog.Builder(this).setTitle("Close Piling Mat Designer?").setMessage("Unsaved inputs will be lost. Saved projects remain on this device.").setPositiveButton("Close", (d,w) -> finish()).setNegativeButton("Keep working", null).show(); }
-    @Override public void onBackPressed() { goBack(); }
     @Override protected void onSaveInstanceState(Bundle out) { super.onSaveInstanceState(out); webView.saveState(out); }
     @Override protected void onDestroy() { webView.destroy(); super.onDestroy(); }
 }
