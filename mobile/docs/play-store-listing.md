@@ -8,7 +8,7 @@
 
 **Proposed category:** Business
 
-**Sales model:** Paid download, selected by David. **Price is not yet set or approved.** No in-app purchases or subscription in this edition.
+**Sales model:** One-off paid download. **Approved UK selling price: £49.99 GBP**, confirmed by David on 31 October 2026. No in-app purchases or subscription in this edition. The price still needs to be configured in Google Play Console before publication.
 
 ## Full description
 
@@ -35,7 +35,7 @@ Support: david@temporaryworksconsulting.com
 
 ## Listing material still required
 
-- Final approved price and distribution countries.
+- Distribution countries; the UK selling price of £49.99 GBP is approved.
 - Public privacy policy URL: publish the included policy on an owner-controlled public HTTPS page and verify it before submission.
 - Actual app screenshots from a tested device; do not substitute simulated store screenshots.
 - Final 512 × 512 store icon and 1024 × 500 feature graphic, verified against current Play Console requirements at submission.

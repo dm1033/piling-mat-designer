@@ -12,7 +12,7 @@ Paid-download Android adaptation of the existing calculation tool. This is a **p
 - Offline local assets with no INTERNET permission, remote pages, analytics, billing SDK, account or JavaScript-to-Java bridge.
 - Android API 36 target, minimum API 26. A separate `.preview` package for debug installations.
 
-The paid download provides the calculation software. It does not purchase a signed design, certificate, independent check, site approval or formal engineering service. Google Play handles the upfront app purchase; there are no in-app purchases in this edition.
+The paid download provides the calculation software. It does not purchase a signed design, certificate, independent check, site approval or formal engineering service. Google Play handles the upfront app purchase; there are no in-app purchases in this edition. David approved a UK one-off download price of **£49.99 GBP** on 31 October 2026. This is recorded for release setup and has not yet been configured in Play Console.
 
 ## Build
 
